@@ -150,6 +150,12 @@ def main():
     spent = sum(s.get("cost_usd") or 0 for s in sessions if str(s.get("date", "")).startswith(today))
     d["schedule"] = {"every_hours": EVERY_H, "next_run": (datetime.now(timezone.utc) + timedelta(hours=EVERY_H)).replace(microsecond=0).isoformat().replace("+00:00", "Z")}
 
+    qp = os.path.join(ROOT, "queue.json")
+    if os.path.exists(qp):
+        try:
+            d["queue"] = json.load(open(qp, encoding="utf-8"))
+        except ValueError:
+            pass
     title = task_title()
     if not title:
         d["agent"] = {"status": "paused", "task": "No active task in TASK.md."}

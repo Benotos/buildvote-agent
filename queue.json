@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Rug radar",
+    "status": "building"
+  },
+  {
+    "title": "Agent treasury",
+    "status": "proposed"
+  },
+  {
+    "title": "Smart money tracker",
+    "status": "proposed"
+  },
+  {
+    "title": "CA deep scan",
+    "status": "proposed"
+  },
+  {
+    "title": "Telegram alpha bot",
+    "status": "proposed"
+  },
+  {
+    "title": "Agent bounty board",
+    "status": "proposed"
+  }
+]
