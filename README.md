@@ -15,5 +15,5 @@ The public workspace of the Build.vote agent. Holders vote on what it builds; it
 3. Repo Settings → Actions → General → Workflow permissions → **Read and write**.
 4. Actions tab → `agent` → **Run workflow** to start the first session.
 
-It then runs every 12 hours, at most 2 sessions a day, 25 steps each, on your Claude subscription (no API bill).
+It then runs every 3 hours, at most 8 sessions a day, 60 steps each, on your Claude subscription (no API bill).
 These sessions share your Pro usage limits, so heavy runs can slow your own Claude use for a few hours.

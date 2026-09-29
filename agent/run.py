@@ -169,6 +169,7 @@ def main():
     save(d, f"agent: session {n} started")
 
     prompt = ("You are the Build.vote agent. Work on the task in TASK.md for this session. "
+              "Sessions are short and have a step limit, so update PROGRESS.md early and often, not just at the end. "
               "Make real, working progress in small steps. Read PROGRESS.md first, and before you finish, "
               "update PROGRESS.md with what you did, what works, and what is next. "
               "Do not run git commit or git push; the runner does that. Never print, read or write secrets or .env files.")
@@ -199,7 +200,8 @@ def main():
     proc.wait()
 
     cost = float(result.get("total_cost_usd") or 0)
-    ok = proc.returncode == 0 and not result.get("is_error")
+    hit_limit = result.get("subtype") == "error_max_turns"
+    ok = hit_limit or (proc.returncode == 0 and not result.get("is_error"))
     summary = clean(result.get("result") or "", 600)
 
     # session log, committed with the work
@@ -208,16 +210,36 @@ def main():
     with open(os.path.join(ROOT, fname), "w", encoding="utf-8") as f:
         f.write(f"# Session {n}: {title}\n\n")
         f.write(f"- Started: {started}\n- Ended: {now()}\n- Steps: {steps}\n- Model turns: {result.get('num_turns', '?')}\n")
-        f.write((f"- API cost: ${cost:.4f}\n" if BILLING == "api" else f"- Billing: Claude subscription (API value ${cost:.4f}, not billed)\n") + f"- Outcome: {'ok' if ok else 'error'}\n\n")
+        f.write((f"- API cost: ${cost:.4f}\n" if BILLING == "api" else f"- Billing: Claude subscription (API value ${cost:.4f}, not billed)\n") + f"- Outcome: {'step limit reached' if hit_limit else ('ok' if ok else 'error')}\n\n")
         if summary:
             f.write(f"## Summary\n\n{summary}\n\n")
         f.write("## Steps\n\n")
         for kind, text in log:
             f.write(f"- `{kind}` {text}\n")
+    # nested repos (e.g. the agent ran git init in a subfolder) would be committed as broken links
+    for dirpath, dirnames, _ in os.walk(ROOT):
+        if dirpath != ROOT and ".git" in dirnames:
+            subprocess.run(["rm", "-rf", os.path.join(dirpath, ".git")])
+        dirnames[:] = [x for x in dirnames if x not in (".git", "node_modules")]
     git("add", "-A")
-    git("reset", "-q", "--", ".env", ".env.local")
+    for f in (".env", ".env.local"):
+        if os.path.exists(os.path.join(ROOT, f)):
+            git("reset", "-q", "--", f)
+    branch = os.environ.get("GITHUB_REF_NAME") or "main"
     c = git("commit", "-m", f"Session {n}: {title}")
-    pushed = git("push", "origin", "HEAD").returncode == 0 if c.returncode == 0 else False
+    save_err = ""
+    if c.returncode != 0 and "nothing to commit" not in (c.stdout + c.stderr):
+        save_err = "commit failed: " + (c.stderr or c.stdout)
+    p = git("push", "origin", f"HEAD:{branch}")
+    if p.returncode != 0:
+        git("pull", "--rebase", "-X", "theirs", "origin", branch)
+        p = git("push", "origin", f"HEAD:{branch}")
+        if p.returncode != 0:
+            save_err = save_err or "push failed: " + p.stderr
+    if save_err:
+        print(save_err, file=sys.stderr)
+        feed_add(d, "error", save_err[:300])
+    pushed = not save_err
 
     server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     row = {"date": started, "task": title, "calls": result.get("num_turns"), "log_url": f"{server}/{REPO}/blob/main/{fname}", "billing": BILLING}
@@ -227,13 +249,14 @@ def main():
         row["cost_usd"] = 0          # nothing billed: runs on the Claude subscription
         row["api_value_usd"] = round(cost, 4)  # what the same usage would cost on the API
     sessions.append(row)
+    status_word = "reached its step limit, continues next session" if hit_limit else ("finished" if ok else "ended with an error")
     feed_add(d, "done" if ok else "error",
-             f"Session {n} {'finished' if ok else 'ended with an error'} · {steps} steps · "
+             f"Session {n} {status_word} · {steps} steps · "
              + (f"${cost:.2f}" if BILLING == "api" else f"covered by Claude subscription (${cost:.2f} API value)")
-             + ("" if pushed else " · push failed"))
+             + ("" if pushed else " · work not saved"))
     d["agent"] = {"status": "idle", "task": f"Last session: {title}", "session": n, "turns": steps}
     save(d, f"agent: session {n} done")
-    if not ok:
+    if not ok or save_err:
         sys.exit(1)
 
 if __name__ == "__main__":
