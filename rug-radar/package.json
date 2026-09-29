@@ -1,0 +1,19 @@
+{
+  "name": "rug-radar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Live launch risk scoring for pump.fun tokens on Solana, from public on-chain data.",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "test": "node --import tsx --test --test-reporter spec $(find src -name '*.test.ts')",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
