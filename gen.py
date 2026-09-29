@@ -12,7 +12,7 @@ NAME = "Build.vote"        # project name, swapped in everywhere
 HANDLE = "BuildDotVote"    # X handle without @
 CA = ""                    # contract address; leave empty until launch
 BUY_URL = ""               # e.g. the pump.fun page; leave empty until launch
-AGENT_REPO = ""            # the AGENT's public repo, e.g. https://github.com/Benotos/buildvote-agent (not the website repo)
+AGENT_REPO = "https://github.com/Benotos/buildvote-agent"
 LIVE_JSON = ""             # leave empty: read from the agent repo's status branch. Set a path only to override.
 _m = __import__("re").match(r"https://github\.com/([^/]+)/([^/#?]+)", AGENT_REPO)
 if not LIVE_JSON:
