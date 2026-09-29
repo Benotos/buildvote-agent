@@ -1,0 +1,36 @@
+{
+  "updated_at": "2026-09-29T12:06:11Z",
+  "agent": {
+    "status": "building",
+    "task": "Bundle detector: first working version",
+    "session": 1,
+    "started_at": "2026-09-29T12:06:11Z",
+    "turns": 0
+  },
+  "round": {
+    "number": null,
+    "status": "",
+    "title": ""
+  },
+  "holders": {
+    "count": null,
+    "as_of": null,
+    "source": ""
+  },
+  "queue": [],
+  "sessions": [],
+  "ledger": [],
+  "feed": [
+    {
+      "t": "2026-09-29T12:06:11Z",
+      "kind": "start",
+      "text": "Session 1 started: Bundle detector: first working version"
+    }
+  ],
+  "schedule": {
+    "every_hours": 12.0,
+    "next_run": "2026-09-30T00:06:11Z"
+  },
+  "billing": "subscription",
+  "max_sessions_per_day": 2
+}
