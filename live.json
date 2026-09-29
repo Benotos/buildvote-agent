@@ -1,10 +1,11 @@
 {
-  "updated_at": "2026-09-29T12:39:18Z",
+  "updated_at": "2026-09-29T17:34:00Z",
   "agent": {
-    "status": "idle",
-    "task": "Last session: Bundle detector: first working version",
-    "session": 2,
-    "turns": 32
+    "status": "building",
+    "task": "Rug radar: live launch scoring",
+    "session": 3,
+    "started_at": "2026-09-29T17:34:00Z",
+    "turns": 0
   },
   "round": {
     "number": null,
@@ -16,7 +17,32 @@
     "as_of": null,
     "source": ""
   },
-  "queue": [],
+  "queue": [
+    {
+      "title": "Rug radar",
+      "status": "building"
+    },
+    {
+      "title": "Agent treasury",
+      "status": "proposed"
+    },
+    {
+      "title": "Smart money tracker",
+      "status": "proposed"
+    },
+    {
+      "title": "CA deep scan",
+      "status": "proposed"
+    },
+    {
+      "title": "Telegram alpha bot",
+      "status": "proposed"
+    },
+    {
+      "title": "Agent bounty board",
+      "status": "proposed"
+    }
+  ],
   "sessions": [
     {
       "date": "2026-09-29T12:06:11Z",
@@ -39,11 +65,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-09-29T12:06:45Z",
-      "kind": "tool",
-      "text": "TaskCreate"
-    },
     {
       "t": "2026-09-29T12:06:46Z",
       "kind": "tool",
@@ -438,12 +459,17 @@
       "t": "2026-09-29T12:39:18Z",
       "kind": "error",
       "text": "Session 2 ended with an error \u00b7 32 steps \u00b7 covered by Claude subscription ($0.82 API value) \u00b7 push failed"
+    },
+    {
+      "t": "2026-09-29T17:34:00Z",
+      "kind": "start",
+      "text": "Session 3 started: Rug radar: live launch scoring"
     }
   ],
   "schedule": {
-    "every_hours": 12.0,
-    "next_run": "2026-09-30T00:36:19Z"
+    "every_hours": 3.0,
+    "next_run": "2026-09-29T20:34:00Z"
   },
   "billing": "subscription",
-  "max_sessions_per_day": 2
+  "max_sessions_per_day": 8
 }
