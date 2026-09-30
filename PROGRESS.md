@@ -243,3 +243,94 @@
   combine with `combineSignals` — all the pieces now exist except the
   discovery step and the page rendering the real feed (currently a static
   placeholder).
+
+## Session 5 — 2026-09-30
+
+### Done
+- Ran `npm install` in `/rug-radar` (node_modules isn't persisted between
+  sessions).
+- Signal 1, Deployer history — the last open signal — is now built, unblocking
+  step 3 entirely (all four signals exist):
+  - Research first: fetched the pump.fun program's public Anchor IDL
+    (`idl/pump.json` in `pump-fun/pump-public-docs` on GitHub) to confirm the
+    `create` instruction's exact account order and discriminator, rather than
+    guessing from the docs prose (which only listed argument names, not
+    account order). Confirmed `create` discriminator
+    `[24,30,200,40,5,28,7,119]` with accounts `mint` (index 0),
+    `bonding_curve` (index 2), `user`/deployer (index 7); also found
+    `create_v2` (spl-token-2022 coins) with discriminator
+    `[214,144,76,236,95,139,49,180]` and `user` at index 4 instead (fewer
+    accounts before it — no metadata/mpl_token_metadata accounts in that
+    variant). Both variants expose `bonding_curve` directly as an instruction
+    account, so no PDA re-derivation is needed to find it.
+  - `src/pumpfun.ts` — added `decodeCreateInstruction(dataBase58, accounts)`:
+    decodes the instruction's base58 data, matches its first 8 bytes against
+    the `create`/`create_v2` discriminators, and pulls `mint`/`bondingCurve`/
+    `user` out of the accounts array at the right index for whichever variant
+    matched (or returns `null` if neither matches, or accounts are short).
+    Added 4 offline tests to `src/pumpfun.test.ts` (create, create_v2,
+    unrelated discriminator, too-few-accounts).
+  - `src/rpc.ts` — `ParsedTransaction.transaction.message` gained an optional
+    `instructions` field (`MessageInstruction[]`), typed as a union of
+    `PartiallyDecodedInstruction` (unrecognized programs like pump.fun:
+    `programId` + raw `accounts` + base58 `data`) and `KnownProgramInstruction`
+    (recognized programs, pre-parsed by the RPC). This was previously
+    unmodeled since nothing needed instruction-level data yet — same
+    "extend the type when something needs it, confirm against real RPC docs"
+    approach used for `ParsedAccountKey` in session 4.
+  - `src/signals/deployerHistory.ts` — `scoreDeployerHistory()`: takes the
+    deployer's prior launches (mint + whether its curve migrated), scores by
+    the share that never migrated (>=80% → 90, 50-80% → 55, else
+    proportional). Fewer than 3 prior launches is flagged as too thin a
+    sample and capped at 40 regardless of share, so e.g. one bad token isn't
+    scored the same as a proven serial-abandoner pattern.
+    `src/signals/deployerHistory.test.ts` — 7 offline tests incl. the thin-
+    history cap and a boundary case.
+  - `src/data/deployerHistory.ts` — `fetchDeployerHistoryInput()`: pages
+    through the deployer's signature history, decodes any pump.fun
+    create/create_v2 instruction where this wallet is the `user`, skips ones
+    that created the current mint (not "prior" history) or a mint already
+    seen, and for each prior mint reads its bonding curve account to check
+    `complete`. `src/data/deployerHistory.test.ts` — 5 tests with fake RPC
+    objects (no fetch mocking, same pattern as the other `data/*.test.ts`
+    files): happy path with a mix of migrated/not, excludes current mint,
+    ignores non-create transactions, skips failed transactions (no wasted
+    `getTransaction` call), and ignores a create instruction from a
+    different deployer.
+- Updated `rug-radar/README.md`: signal 1 moved from "planned" to "built",
+  `pumpfun.ts`'s description now covers `decodeCreateInstruction` and points
+  at the IDL (not just the docs prose) as the source, and the top status
+  line now says all four signals are built.
+
+### Works
+- `npm run typecheck` and `npm run build` are clean in `/rug-radar`.
+- `npm test`: 64/64 passing, all offline (mocked `fetch`, fake RPC objects,
+  or hand-built fixture buffers/instructions — no live network calls
+  anywhere in tests).
+- All four signals from TASK.md are now built: deployer history, bundled
+  buys, holder concentration, liquidity/migration — plus the combiner.
+
+### Next
+- Step 5 is the only remaining piece: wire `GET /api/feed` to a real
+  pipeline. Still needs a launch-discovery mechanism (poll
+  `getSignaturesForAddress` on the pump.fun program ID itself, or on a
+  known high-traffic account, for new `create`/`create_v2` instructions —
+  the same decoding already built in `pumpfun.ts` and
+  `data/deployerHistory.ts` works for this, just pointed at the program ID
+  instead of one deployer). Once discovery exists, `src/server.ts`'s stub
+  feed can call all four `fetch*Input` functions per new launch, score with
+  `score*`, combine with `combineSignals`, and the page (currently a static
+  placeholder in `public/index.html`) needs to poll `/api/feed` and render
+  the list.
+- `fetchDeployerHistoryInput`'s `signatureLimit` (default 100) bounds how far
+  back it looks for a deployer's prior launches — same "fine for typical
+  cases, will under-count a very prolific wallet" caveat as bundled buys'
+  funding-source lookback (session 4). Worth a real-RPC sanity check once
+  step 5 exists and there's live data to look at.
+- No live-RPC smoke test has been run yet against any of the four signals'
+  data-fetch functions (holder concentration, liquidity, bundled buys,
+  deployer history) — all testing so far is offline against fixtures/fake
+  RPC objects. Once step 5's discovery loop exists, running the full
+  pipeline against one real, recent launch would be a good sanity check
+  that the account layouts and instruction decoding hold up against live
+  data, not just hand-built fixtures.

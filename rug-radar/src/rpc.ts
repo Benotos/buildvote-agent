@@ -62,6 +62,24 @@ export interface ParsedAccountKey {
   source?: string;
 }
 
+// An instruction from an unrecognized program (e.g. pump.fun): the RPC can't
+// decode its contents, so it's returned as a raw programId + account list +
+// base58 instruction data.
+export interface PartiallyDecodedInstruction {
+  programId: string;
+  accounts: string[];
+  data: string;
+}
+
+// An instruction from a program the RPC knows how to decode (System, Token, ...).
+export interface KnownProgramInstruction {
+  programId: string;
+  program: string;
+  parsed: unknown;
+}
+
+export type MessageInstruction = PartiallyDecodedInstruction | KnownProgramInstruction;
+
 export interface ParsedTransaction {
   slot: number;
   blockTime: number | null;
@@ -69,6 +87,7 @@ export interface ParsedTransaction {
     signatures: string[];
     message: {
       accountKeys: ParsedAccountKey[];
+      instructions?: MessageInstruction[];
     };
   };
   meta: ParsedTransactionMeta | null;

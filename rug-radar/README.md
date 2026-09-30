@@ -4,9 +4,9 @@ Live risk scoring for new pump.fun token launches on Solana, built from public
 on-chain data only. Watches new launches, scores each one from a handful of
 signals, and serves a small live feed page.
 
-Status: data layer, three of four signals, and the combined score are built;
-deployer history and the live feed wiring are in progress — see `../TASK.md`
-for the plan and `../PROGRESS.md` for where things stand.
+Status: data layer, all four signals, and the combined score are built; the
+live feed wiring (real launch discovery + rendering) is what's left — see
+`../TASK.md` for the plan and `../PROGRESS.md` for where things stand.
 
 ## Data layer
 
@@ -23,18 +23,23 @@ when looking at real holders.
 `src/base58.ts` is a small base58 codec (no dependency) used to turn raw
 pubkey bytes from account data back into the addresses everyone recognizes.
 
-`src/pumpfun.ts` has the pump.fun program ID and the bonding curve account
-layout (`decodeBondingCurve`), per the public spec at
-[pump-fun/pump-public-docs](https://github.com/pump-fun/pump-public-docs/blob/main/docs/PUMP_PROGRAM_README.md).
-The bonding curve is a PDA per mint (seeds `["bonding-curve", mint]`); its
-address comes from the mint's "create" transaction rather than being
-re-derived here.
+`src/pumpfun.ts` has the pump.fun program ID, the bonding curve account
+layout (`decodeBondingCurve`), and the `create`/`create_v2` instruction
+layout (`decodeCreateInstruction`), per the program's public Anchor IDL at
+[pump-fun/pump-public-docs](https://github.com/pump-fun/pump-public-docs)
+(`idl/pump.json`). The bonding curve is a PDA per mint (seeds
+`["bonding-curve", mint]`); rather than re-deriving it, both the liquidity
+signal and deployer history read the address straight out of the relevant
+transaction (the bonding curve account itself, or the `create` instruction's
+account list).
 
 ## Signals
 
 1. **Deployer history** — how many tokens this wallet launched before and how
-   they ended. *(planned — needs the "create" instruction's account order
-   confirmed against a real transaction before it can be decoded)*
+   they ended. **Built:** `src/signals/deployerHistory.ts` (pure scoring
+   function) + `src/data/deployerHistory.ts` (scans the deployer's
+   transaction history for past pump.fun `create`/`create_v2` instructions,
+   then checks each prior mint's bonding curve for whether it migrated).
 2. **Bundled buys** — wallets funded from one source that bought in the first
    minutes. **Built:** `src/signals/bundledBuys.ts` (pure scoring function) +
    `src/data/bundledBuys.ts` (finds early buyers of the mint from the bonding
