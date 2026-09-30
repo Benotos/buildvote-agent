@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-09-30T18:00:21Z",
+  "updated_at": "2026-09-30T18:00:47Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 7,
     "started_at": "2026-09-30T17:59:27Z",
-    "turns": 13
+    "turns": 15
   },
   "round": {
     "number": null,
@@ -101,16 +101,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-09-30T00:29:20Z",
-      "kind": "think",
-      "text": "Now update the README and PROGRESS.md."
-    },
-    {
-      "t": "2026-09-30T00:29:21Z",
-      "kind": "read",
-      "text": "rug-radar/README.md"
-    },
     {
       "t": "2026-09-30T00:29:30Z",
       "kind": "edit",
@@ -500,6 +490,16 @@
       "t": "2026-09-30T18:00:18Z",
       "kind": "run",
       "text": "curl -s \"https://api.github.com/repos/pump-fun/pump-public-docs/git/trees/main?recursive=1\" | grep -i idl"
+    },
+    {
+      "t": "2026-09-30T18:00:22Z",
+      "kind": "run",
+      "text": "curl -s \"https://raw.githubusercontent.com/pump-fun/pump-public-docs/main/idl/pump.json\" | python3 -c \" import json,sys d = json.load(sys.stdin) for instr in d.get('instructions',\u2026"
+    },
+    {
+      "t": "2026-09-30T18:00:46Z",
+      "kind": "read",
+      "text": "rug-radar/src/base58.ts"
     }
   ],
   "schedule": {
