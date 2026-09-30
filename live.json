@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-09-30T18:01:41Z",
+  "updated_at": "2026-09-30T18:02:12Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 7,
     "started_at": "2026-09-30T17:59:27Z",
-    "turns": 19
+    "turns": 25
   },
   "round": {
     "number": null,
@@ -101,46 +101,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-09-30T00:30:17Z",
-      "kind": "run",
-      "text": "npm run typecheck && npm test 2>&1 | tail -15 && npm run build"
-    },
-    {
-      "t": "2026-09-30T00:30:25Z",
-      "kind": "think",
-      "text": "All clean: typecheck, 31/31 tests, and build all pass."
-    },
-    {
-      "t": "2026-09-30T00:30:27Z",
-      "kind": "done",
-      "text": "Session 5 finished \u00b7 47 steps \u00b7 covered by Claude subscription ($1.55 API value)"
-    },
-    {
-      "t": "2026-09-30T09:39:17Z",
-      "kind": "start",
-      "text": "Session 6 started: Rug radar: live launch scoring"
-    },
-    {
-      "t": "2026-09-30T09:39:21Z",
-      "kind": "run",
-      "text": "echo \"--- TASK.md ---\" && cat TASK.md 2>/dev/null && echo \"--- PROGRESS.md ---\" && cat PROGRESS.md 2>/dev/null && echo \"--- ls ---\" && ls -la"
-    },
-    {
-      "t": "2026-09-30T09:39:23Z",
-      "kind": "think",
-      "text": "This is session 4 continuing the rug-radar build. Based on PROGRESS.md, the next priorities are signal 2 (bundled buys, unblocked), the step-4 combiner (unblocked), and signal 1 (\u2026"
-    },
-    {
-      "t": "2026-09-30T09:39:24Z",
-      "kind": "run",
-      "text": "cd rug-radar && find src -type f | sort && echo \"---\" && cat package.json"
-    },
-    {
-      "t": "2026-09-30T09:39:26Z",
-      "kind": "read",
-      "text": "rug-radar/src/types.ts"
-    },
     {
       "t": "2026-09-30T09:39:27Z",
       "kind": "read",
@@ -500,6 +460,46 @@
       "t": "2026-09-30T18:01:41Z",
       "kind": "think",
       "text": "Now let's look at `data/liquidity.ts` and its test for the fake-RPC pattern, and `knownAccounts.ts` naming conventions."
+    },
+    {
+      "t": "2026-09-30T18:01:43Z",
+      "kind": "read",
+      "text": "rug-radar/src/data/liquidity.ts"
+    },
+    {
+      "t": "2026-09-30T18:01:49Z",
+      "kind": "edit",
+      "text": "rug-radar/src/rpc.ts"
+    },
+    {
+      "t": "2026-09-30T18:01:50Z",
+      "kind": "think",
+      "text": "Now update `pumpfun.ts` to add the `create`/`create_v2` account layout and decoder."
+    },
+    {
+      "t": "2026-09-30T18:01:53Z",
+      "kind": "edit",
+      "text": "rug-radar/src/pumpfun.ts"
+    },
+    {
+      "t": "2026-09-30T18:02:01Z",
+      "kind": "edit",
+      "text": "rug-radar/src/pumpfun.ts"
+    },
+    {
+      "t": "2026-09-30T18:02:02Z",
+      "kind": "think",
+      "text": "Now add tests for `decodeCreateInstruction` in `pumpfun.test.ts`."
+    },
+    {
+      "t": "2026-09-30T18:02:04Z",
+      "kind": "edit",
+      "text": "rug-radar/src/pumpfun.test.ts"
+    },
+    {
+      "t": "2026-09-30T18:02:12Z",
+      "kind": "edit",
+      "text": "rug-radar/src/pumpfun.test.ts"
     }
   ],
   "schedule": {
