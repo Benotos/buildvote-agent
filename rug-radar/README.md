@@ -19,17 +19,32 @@ no live calls.
 program, associated token program, system program) that signals exclude
 when looking at real holders.
 
+`src/base58.ts` is a small base58 codec (no dependency) used to turn raw
+pubkey bytes from account data back into the addresses everyone recognizes.
+
+`src/pumpfun.ts` has the pump.fun program ID and the bonding curve account
+layout (`decodeBondingCurve`), per the public spec at
+[pump-fun/pump-public-docs](https://github.com/pump-fun/pump-public-docs/blob/main/docs/PUMP_PROGRAM_README.md).
+The bonding curve is a PDA per mint (seeds `["bonding-curve", mint]`); its
+address comes from the mint's "create" transaction rather than being
+re-derived here.
+
 ## Signals
 
 1. **Deployer history** — how many tokens this wallet launched before and how
-   they ended. *(planned)*
+   they ended. *(planned — needs the "create" instruction decoded from the
+   deployer's transaction history)*
 2. **Bundled buys** — wallets funded from one source that bought in the first
    minutes. *(planned)*
 3. **Holder concentration** — top 10 holder share, excluding the bonding
    curve and known program accounts. **Built:** `src/signals/holderConcentration.ts`
    (pure scoring function) + `src/data/holderConcentration.ts` (gathers the
    input via `rpc.ts`).
-4. **Liquidity and migration status**. *(planned)*
+4. **Liquidity and migration status** — real SOL reserves still backing the
+   bonding curve, and whether it has graduated to an AMM. **Built:**
+   `src/signals/liquidity.ts` (pure scoring function) + `src/data/liquidity.ts`
+   (fetches the bonding curve account via `rpc.ts` and decodes it with
+   `pumpfun.ts`).
 
 Each signal lives in its own module under `src/signals/` with offline tests
 using recorded sample data — no live network calls in tests. Data-gathering

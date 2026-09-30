@@ -93,3 +93,76 @@
   useful.
 - Step 5: wire `GET /api/feed` (currently a stub in `src/server.ts`) to a
   real pipeline once signals + combiner exist.
+
+## Session 3 — 2026-09-30
+
+### Done
+- Researched pump.fun on-chain layout (needed before signals 1 and 4 could
+  be built): program ID `6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P`, the
+  bonding curve PDA (seeds `["bonding-curve", mint]`), its Anchor account
+  layout (8-byte discriminator, five little-endian u64 reserve fields, a
+  `complete` bool, then the `creator` pubkey), and how migration works
+  (permissionless `migrate` instruction, graduates to PumpSwap since March
+  2025, previously Raydium). Source: the project's own public docs repo
+  (`pump-fun/pump-public-docs`), linked from `rug-radar/README.md`.
+- Fixed a pre-existing bug in `src/knownAccounts.ts`: `systemProgram` had 9
+  extra `"1"` characters (41 chars instead of the correct 32-char address
+  `11111111111111111111111111111111`). Confirmed the correct value against
+  Solana Explorer and added a codec test that pins it (see below) so it
+  can't silently regress. Holder-concentration exclusion lists using this
+  constant were slightly wrong before; low real-world impact since the
+  system program rarely appears as a token holder, but worth fixing since
+  other signals may reuse this list.
+- `src/base58.ts` — small dependency-free base58 (Bitcoin alphabet) codec
+  (`base58Encode`/`base58Decode`), needed to turn the raw pubkey bytes in
+  account data back into addresses. `src/base58.test.ts` — 3 tests: the
+  all-zero-bytes vector against the (now-fixed) system program address,
+  round-trips of 4 known real addresses, and rejection of invalid
+  characters.
+- `src/pumpfun.ts` — pump.fun program ID constant + `decodeBondingCurve()`,
+  a pure offline decoder for the bonding curve account's raw base64 data
+  (reserves, `complete` flag, `creator` address). `src/pumpfun.test.ts` — 3
+  tests using hand-built fixture buffers (still-bonding, completed/migrated,
+  and too-short data), no network involved.
+- Step 3 (signal 4, Liquidity and migration status), same pure-logic /
+  data-fetch split as signal 3:
+  - `src/signals/liquidity.ts` — `scoreLiquidity()`: score 10 if the curve
+    is complete (migrated to an AMM); otherwise scores by real SOL reserves
+    still backing the curve (<=5 SOL → 80 "thin", <=15 SOL → 45
+    "moderate", else 20 "deep, approaching graduation").
+    `src/signals/liquidity.test.ts` — 5 offline tests incl. a boundary case.
+  - `src/data/liquidity.ts` — `fetchLiquidityInput()` calls
+    `rpc.getAccountInfo()` on the bonding curve address and decodes it via
+    `pumpfun.ts`. `src/data/liquidity.test.ts` — 2 tests with a fake RPC
+    object (found + not-found cases).
+- Updated `rug-radar/README.md`: documents `base58.ts`, `pumpfun.ts`, and
+  the now-built liquidity signal; notes the bonding curve address comes
+  from the mint's "create" transaction rather than being PDA-derived here
+  (no `@solana/web3.js` dependency added — PDA derivation needs ed25519
+  curve-membership checks that aren't worth a new dependency yet).
+
+### Works
+- `npm run typecheck` and `npm run build` are clean in `/rug-radar`.
+- `npm test`: 31/31 passing, all offline (mocked `fetch`, fake RPC objects,
+  or hand-built fixture buffers — no live network calls anywhere in tests).
+
+### Next
+- Signal 1, Deployer history: now unblocked by this session's research.
+  Plan: given a deployer wallet address, use `getSignaturesForAddress` +
+  `getTransaction` (already in `rpc.ts`) to find past pump.fun `create`
+  instructions from that wallet, collect the mints created, then check each
+  mint's bonding curve (`decodeBondingCurve`, already built) for
+  `complete`/still-active as a rough "how did it end" signal. Note: the
+  `create` instruction's exact account order isn't nailed down yet from the
+  docs read so far — confirm it (e.g. via a real transaction on a block
+  explorer) before decoding instruction data, same caution as this
+  session's account-layout work.
+- Signal 2, Bundled buys: build on `getSignaturesForAddress` +
+  `getTransaction` to find early buyers funded from a common source wallet
+  — no new research needed, can start directly.
+- Step 4: the combiner (`SignalResult[]` → `LaunchScore`) — now unblocked,
+  two signals exist (holder-concentration, liquidity). Could be built next
+  session even before signals 1/2 land, then extended as they arrive.
+- Step 5: wire `GET /api/feed` to a real pipeline — still blocked on having
+  a way to discover *new* launches (a "create" instruction watcher/poller),
+  which hasn't been built yet and doesn't depend on which signals exist.
