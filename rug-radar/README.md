@@ -4,8 +4,9 @@ Live risk scoring for new pump.fun token launches on Solana, built from public
 on-chain data only. Watches new launches, scores each one from a handful of
 signals, and serves a small live feed page.
 
-Status: data layer and one signal are built; the rest are in progress — see
-`../TASK.md` for the plan and `../PROGRESS.md` for where things stand.
+Status: data layer, three of four signals, and the combined score are built;
+deployer history and the live feed wiring are in progress — see `../TASK.md`
+for the plan and `../PROGRESS.md` for where things stand.
 
 ## Data layer
 
@@ -32,10 +33,13 @@ re-derived here.
 ## Signals
 
 1. **Deployer history** — how many tokens this wallet launched before and how
-   they ended. *(planned — needs the "create" instruction decoded from the
-   deployer's transaction history)*
+   they ended. *(planned — needs the "create" instruction's account order
+   confirmed against a real transaction before it can be decoded)*
 2. **Bundled buys** — wallets funded from one source that bought in the first
-   minutes. *(planned)*
+   minutes. **Built:** `src/signals/bundledBuys.ts` (pure scoring function) +
+   `src/data/bundledBuys.ts` (finds early buyers of the mint from the bonding
+   curve's transaction history, then traces each buyer's earliest known
+   transaction to find who funded them with SOL).
 3. **Holder concentration** — top 10 holder share, excluding the bonding
    curve and known program accounts. **Built:** `src/signals/holderConcentration.ts`
    (pure scoring function) + `src/data/holderConcentration.ts` (gathers the
@@ -50,6 +54,16 @@ Each signal lives in its own module under `src/signals/` with offline tests
 using recorded sample data — no live network calls in tests. Data-gathering
 helpers that call the RPC layer live in `src/data/`, kept separate from the
 pure scoring logic so the scoring can be tested without any network mocking.
+
+## Score
+
+`src/scorer.ts` combines a launch's `SignalResult[]` into one `LaunchScore`:
+a weighted average (0-100, higher is riskier) with every signal's reasons
+attached so the number is never shown without its "why". Liquidity and
+holder concentration — the most direct rug-pull indicators — carry double
+the weight of wallet-behavior signals like bundled buys; any signal not
+listed defaults to a weight of 1, so the combiner doesn't need updating
+every time a new signal lands.
 
 ## Setup
 

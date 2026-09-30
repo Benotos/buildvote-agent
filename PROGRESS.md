@@ -166,3 +166,80 @@
 - Step 5: wire `GET /api/feed` to a real pipeline — still blocked on having
   a way to discover *new* launches (a "create" instruction watcher/poller),
   which hasn't been built yet and doesn't depend on which signals exist.
+
+## Session 4 — 2026-09-30
+
+### Done
+- Ran `npm install` in `/rug-radar` (node_modules isn't persisted between
+  sessions; needed before tests/typecheck could run).
+- Step 4, the combiner: `src/scorer.ts` — `combineSignals(mint, signals)` →
+  `LaunchScore`. Weighted average of each signal's 0-100 score (liquidity and
+  holder-concentration weighted 2x as the most direct rug-pull indicators;
+  unlisted/future signal names default to weight 1 so the combiner doesn't
+  need touching every time a new signal lands), reasons passed through
+  untouched per signal. `src/scorer.test.ts` — 5 offline tests.
+- Signal 2, Bundled buys — pure scoring logic:
+  `src/signals/bundledBuys.ts` — `scoreBundledBuys()`: takes early buys
+  (buyer, funding-source wallet or null, seconds after launch), filters to
+  a time window (default 5 min), groups by funding source, scores by what
+  share of early buyers share one funding wallet (>=50% → 90, 30-50% → 55,
+  else proportional; <2 buyers from one source isn't a "bundle").
+  `src/signals/bundledBuys.test.ts` — 7 offline tests.
+- Signal 2 — data fetch: before writing `src/data/bundledBuys.ts`, confirmed
+  via the public Solana RPC docs (web search) that `getTransaction` with
+  `encoding: jsonParsed` returns `transaction.message.accountKeys` as
+  `{pubkey, signer, writable, source?}[]` (same order as `preBalances`/
+  `postBalances`) — this was previously typed as `unknown` in `rpc.ts`
+  since nothing needed it yet. Extended `ParsedTransaction` in `src/rpc.ts`
+  with this shape (new `ParsedAccountKey` type) rather than guessing it.
+  `src/data/bundledBuys.ts` — `fetchBundledBuysInput()`: pulls the bonding
+  curve's recent signatures, keeps ones inside the early window, finds the
+  buyer from each transaction's token-balance increase for the mint, then
+  for each distinct buyer walks back to their earliest known transaction
+  (within a signature-count limit) and reads which other account's SOL
+  balance dropped the most — a heuristic "who funded this wallet" proxy,
+  documented as such since a wallet's true first-ever tx could be older
+  than the scanned window. Caches the funding lookup per buyer address so
+  a wallet appearing in multiple early buys isn't re-fetched.
+  `src/data/bundledBuys.test.ts` — 5 tests with fake RPC objects (no fetch
+  mocking, matching the pattern in the other `data/*.test.ts` files).
+- Updated `rug-radar/README.md`: documents the scorer and the now-built
+  bundled-buys signal (both logic and data-fetch sides), notes the
+  remaining "planned" status of deployer history.
+
+### Works
+- `npm run typecheck` and `npm run build` are clean in `/rug-radar`.
+- `npm test`: 48/48 passing, all offline (mocked `fetch`, fake RPC objects,
+  or hand-built fixture buffers — no live network calls anywhere in tests).
+- Three of four signals now built (holder-concentration, liquidity,
+  bundled-buys) plus the combiner; only deployer-history and the live feed
+  wiring remain from the original TASK.md plan.
+
+### Next
+- Signal 1, Deployer history: still the one open signal. Needs the
+  pump.fun "create" instruction's account order confirmed against a real
+  transaction (e.g. via a block explorer) before decoding — same
+  "confirm before decoding" caution used for bundled buys' `accountKeys`
+  shape this session. Plan unchanged from session 3: given a deployer
+  wallet, use `getSignaturesForAddress` + `getTransaction` (already in
+  `rpc.ts`) to find past `create` instructions from that wallet, collect
+  the mints, then check each mint's bonding curve (`decodeBondingCurve`,
+  already built) for complete/still-active as a rough "how did it end"
+  read.
+- Bundled buys' funding-source heuristic (`findFundingSource` in
+  `src/data/bundledBuys.ts`) only looks back `signatureLimit` (default 50)
+  transactions per buyer wallet — fine for freshly-created buyer wallets
+  (the common bundling case) but will miss the true funding source for an
+  old, active wallet. Worth a real-RPC sanity check once step 5's live
+  pipeline exists and there's real data to look at, rather than guessing
+  further offline.
+- Step 5: wire `GET /api/feed` to a real pipeline. Still needs a way to
+  discover *new* launches (a "create" instruction watcher/poller) — this
+  remains the last unblocked-but-not-started piece, independent of which
+  signals exist. Once it exists, `src/server.ts`'s stub feed can call
+  `fetchHolderConcentrationInput` / `fetchLiquidityInput` /
+  `fetchBundledBuysInput` for each new launch, run them through
+  `scoreHolderConcentration` / `scoreLiquidity` / `scoreBundledBuys`, and
+  combine with `combineSignals` — all the pieces now exist except the
+  discovery step and the page rendering the real feed (currently a static
+  placeholder).

@@ -55,12 +55,21 @@ export interface ParsedTransactionMeta {
   logMessages?: string[];
 }
 
+export interface ParsedAccountKey {
+  pubkey: string;
+  signer: boolean;
+  writable: boolean;
+  source?: string;
+}
+
 export interface ParsedTransaction {
   slot: number;
   blockTime: number | null;
   transaction: {
     signatures: string[];
-    message: unknown;
+    message: {
+      accountKeys: ParsedAccountKey[];
+    };
   };
   meta: ParsedTransactionMeta | null;
 }
