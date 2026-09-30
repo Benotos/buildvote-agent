@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-09-30T22:17:27Z",
+  "updated_at": "2026-09-30T22:17:54Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 8,
     "started_at": "2026-09-30T22:13:16Z",
-    "turns": 40
+    "turns": 43
   },
   "round": {
     "number": null,
@@ -110,36 +110,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-09-30T18:02:33Z",
-      "kind": "run",
-      "text": "npx tsc --noEmit 2>&1 | head -50"
-    },
-    {
-      "t": "2026-09-30T18:02:36Z",
-      "kind": "run",
-      "text": "npx tsc --noEmit 2>&1 | head -50 && echo TSC_OK && node --test --import tsx src/pumpfun.test.ts src/signals/deployerHistory.test.ts 2>&1 | tail -40"
-    },
-    {
-      "t": "2026-09-30T18:02:41Z",
-      "kind": "think",
-      "text": "All pass. Now the data-fetch layer."
-    },
-    {
-      "t": "2026-09-30T18:02:49Z",
-      "kind": "edit",
-      "text": "rug-radar/src/data/deployerHistory.ts"
-    },
-    {
-      "t": "2026-09-30T18:02:51Z",
-      "kind": "read",
-      "text": "rug-radar/src/data/liquidity.test.ts"
-    },
-    {
-      "t": "2026-09-30T18:02:52Z",
-      "kind": "think",
-      "text": "Good, I'll reuse this fixture-building style plus the `instructionData`/`buildAccounts` pattern for create instructions in the deployer-history data test."
-    },
     {
       "t": "2026-09-30T18:03:08Z",
       "kind": "edit",
@@ -509,6 +479,36 @@
       "t": "2026-09-30T22:17:26Z",
       "kind": "edit",
       "text": "rug-radar/src/poller.test.ts"
+    },
+    {
+      "t": "2026-09-30T22:17:29Z",
+      "kind": "run",
+      "text": "npm run typecheck 2>&1 | tail -60 && npm test 2>&1 | tail -20"
+    },
+    {
+      "t": "2026-09-30T22:17:35Z",
+      "kind": "think",
+      "text": "75/75 pass. Now let's wire `server.ts` to run the poller on an interval and serve the real feed, and update the front-end page."
+    },
+    {
+      "t": "2026-09-30T22:17:44Z",
+      "kind": "edit",
+      "text": "rug-radar/src/server.ts"
+    },
+    {
+      "t": "2026-09-30T22:17:49Z",
+      "kind": "think",
+      "text": "I added unnecessary bigint handling \u2014 `LaunchScore`/`SignalResult` never carry bigints (only the internal signal *inputs* do), so let me simplify."
+    },
+    {
+      "t": "2026-09-30T22:17:52Z",
+      "kind": "edit",
+      "text": "rug-radar/src/server.ts"
+    },
+    {
+      "t": "2026-09-30T22:17:54Z",
+      "kind": "think",
+      "text": "Now let's update the front-end page to poll `/api/feed` and render results."
     }
   ],
   "schedule": {
