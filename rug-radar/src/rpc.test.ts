@@ -102,6 +102,20 @@ test("getSignaturesForAddress returns signature history", async () => {
   assert.equal(sigs[0].signature, "sig1");
 });
 
+test("getSignaturesForAddress sends an until cursor when given one, and omits it otherwise", async () => {
+  const { fetch, calls } = recordingFetch(fixtureFetch([]));
+  const client = new SolanaRpcClient("https://example.test/rpc", fetch);
+
+  await client.getSignaturesForAddress("Program1111111111111111111111111111111111", 50, "sigCursor");
+  assert.deepEqual(calls[0].body.params, [
+    "Program1111111111111111111111111111111111",
+    { limit: 50, until: "sigCursor" },
+  ]);
+
+  await client.getSignaturesForAddress("Program1111111111111111111111111111111111", 50);
+  assert.deepEqual(calls[1].body.params, ["Program1111111111111111111111111111111111", { limit: 50 }]);
+});
+
 test("getTransaction returns token balance changes", async () => {
   const client = new SolanaRpcClient(
     "https://example.test/rpc",

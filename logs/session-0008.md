@@ -1,0 +1,95 @@
+# Session 8: Rug radar: live launch scoring
+
+- Started: 2026-09-30T22:13:16Z
+- Ended: 2026-09-30T22:19:59Z
+- Steps: 60
+- Model turns: 61
+- Billing: Claude subscription (API value $2.2849, not billed)
+- Outcome: step limit reached
+
+## Steps
+
+- `run` cat TASK.md 2>/dev/null; echo "---PROGRESS---"; cat PROGRESS.md 2>/dev/null; echo "---LS---"; ls -la
+- `run` cd rug-radar && find . -path ./node_modules -prune -o -type f -print | sort
+- `think` Good, this is session 6. Let me check memory for any relevant context, then set up the environment and dig into the remaining work: wiring step 5 (launch discovery → live feed).
+- `run` cat /home/runner/.claude/projects/-home-runner-work-buildvote-agent-buildvote-agent/memory/MEMORY.md 2>/dev/null
+- `run` cd rug-radar && npm install --silent 2>&1 | tail -5 && npm test 2>&1 | tail -20
+- `run` pwd; ls
+- `run` npm install --silent 2>&1 | tail -5 && npm test 2>&1 | tail -20
+- `think` All 64 tests pass. Now let's look at the key files needed for step 5 wiring.
+- `read` rug-radar/src/server.ts
+- `read` rug-radar/src/rpc.ts
+- `read` rug-radar/src/data/deployerHistory.ts
+- `read` rug-radar/src/types.ts
+- `read` rug-radar/src/scorer.ts
+- `read` rug-radar/src/pumpfun.ts
+- `think` Now let's check the other data-fetch modules and the bundledBuys data module, plus the index.html, config.ts.
+- `read` rug-radar/src/data/holderConcentration.ts
+- `read` rug-radar/src/data/liquidity.ts
+- `read` rug-radar/src/data/bundledBuys.ts
+- `read` rug-radar/src/config.ts
+- `read` rug-radar/src/knownAccounts.ts
+- `read` rug-radar/public/index.html
+- `run` for f in src/signals/deployerHistory.ts src/signals/bundledBuys.ts src/signals/holderConcentration.ts src/signals/liquidity.ts; do echo "=== $f ==="; grep -n "export function\|export interface" "$f"; done
+- `read` rug-radar/src/signals/deployerHistory.ts
+- `read` rug-radar/src/signals/bundledBuys.ts
+- `think` Now let's check `HolderConcentrationInput` and `LiquidityInput` briefly (already partially known) and the rpc.test.ts to understand test conventions for extending `getSignaturesForAddress`.
+- `read` rug-radar/src/rpc.test.ts
+- `read` rug-radar/src/signals/holderConcentration.ts
+- `think` Good, I now have everything needed. Let me extend `getSignaturesForAddress` to support an `until` cursor, then build the discovery + pipeline modules and wire the server.
+- `edit` rug-radar/src/rpc.ts
+- `think` Now let's add a test for the `until` param, then build the discovery module.
+- `edit` rug-radar/src/rpc.test.ts
+- `think` Now let's create the discovery module.
+- `edit` rug-radar/src/discovery.ts
+- `edit` rug-radar/src/discovery.test.ts
+- `read` rug-radar/src/pumpfun.test.ts
+- `edit` rug-radar/src/discovery.test.ts
+- `think` Now let's build the pipeline module that scores a discovered launch using all four signals.
+- `edit` rug-radar/src/pipeline.ts
+- `edit` rug-radar/src/pipeline.ts
+- `run` cat src/data/liquidity.test.ts; echo "---"; cat src/data/holderConcentration.test.ts
+- `edit` rug-radar/src/pipeline.test.ts
+- `think` Now let's run the tests so far before wiring the server.
+- `run` npm run typecheck 2>&1 | tail -60
+- `think` Typecheck passes. Now let's run the test suite.
+- `run` npm test 2>&1 | tail -60
+- `think` 71/71 tests pass. Now let's wire the server: poll for new launches, score them, keep a bounded in-memory feed, serve it from `/api/feed`.
+- `run` cat src/config.test.ts
+- `edit` rug-radar/src/feed.ts
+- `edit` rug-radar/src/feed.test.ts
+- `think` Now the poller module that ties discovery + pipeline + feed together for one poll cycle:
+- `edit` rug-radar/src/poller.ts
+- `think` Now a test for the poller combining discovery + pipeline + feed offline:
+- `edit` rug-radar/src/poller.test.ts
+- `run` npm run typecheck 2>&1 | tail -60 && npm test 2>&1 | tail -20
+- `think` 75/75 pass. Now let's wire `server.ts` to run the poller on an interval and serve the real feed, and update the front-end page.
+- `edit` rug-radar/src/server.ts
+- `think` I added unnecessary bigint handling — `LaunchScore`/`SignalResult` never carry bigints (only the internal signal *inputs* do), so let me simplify.
+- `edit` rug-radar/src/server.ts
+- `think` Now let's update the front-end page to poll `/api/feed` and render results.
+- `edit` rug-radar/public/index.html
+- `run` grep -n "reasons" src/signals/holderConcentration.ts src/signals/liquidity.ts
+- `think` All reasons are numeric percentages/counts — no untrusted addresses embedded. Safe to render directly. Now let's run the full test suite and build to confirm everything still works.
+- `run` npm run typecheck 2>&1 | tail -40 && npm run build 2>&1 | tail -40 && npm test 2>&1 | tail -15
+- `think` All green. Let's do a quick manual smoke test of the server starting up (without hitting live RPC yet, just confirm it boots and serves the stub feed).
+- `run` (SOLANA_RPC_URL="http://127.0.0.1:1/unreachable" PORT=8799 npm start > /tmp/server.log 2>&1 &) && sleep 1 && curl -s http://localhost:8799/api/feed && echo && curl -s http://localhost:8799/ | head -5 && cat /tmp/server.log
+- `think` Server boots, serves the page and feed endpoint, and handles RPC failures gracefully (logs and keeps running instead of crashing). Let's kill it and do one real-RPC smoke check as session 5's notes suggested, using the public mainnet RPC, to sanity-check the discovery path against live data.
+- `run` pkill -f "tsx src/server.ts" 2>/dev/null; sleep 1; echo done
+- `run` pgrep -fa "tsx src/server.ts" || echo "no server running"
+- `think` Good, it's stopped. Now let's do a real-RPC smoke test of the discovery + pipeline against live mainnet data, per session 5's "Next" note — this is a manual sanity check, not something to bake into the offline test suite.
+- `run` cat > /tmp/smoke.mjs << 'EOF' import { SolanaRpcClient } from "/home/runner/work/buildvote-agent/buildvote-agent/rug-radar/src/rpc.ts"; EOF echo "will use tsx to run a ts smoke script instead"
+- `edit` rug-radar/tmp-smoke.ts
+- `run` timeout 100 npx tsx tmp-smoke.ts 2>&1 | head -100
+- `think` Found a real-RPC issue: `getTransaction` can throw "not found" for a signature just returned by `getSignaturesForAddress` (the public RPC cluster isn't always consistent across its backend nodes), which currently crashes the whole discovery poll. Let me make it resilient to that.
+- `edit` rug-radar/src/discovery.ts
+- `think` Now let's add an offline test for this resilience behavior and re-run the full suite, then retry the smoke test.
+- `edit` rug-radar/src/discovery.test.ts
+- `run` npm run typecheck 2>&1 | tail -40 && npm test 2>&1 | tail -15
+- `edit` rug-radar/src/discovery.test.ts
+- `run` npm test 2>&1 | tail -15
+- `think` 76/76 passing. Now retry the real-RPC smoke test with the resilience fix in place.
+- `run` timeout 120 npx tsx tmp-smoke.ts 2>&1 | head -150
+- `read` rug-radar/src/discovery.ts
+- `think` The crash is from the RPC itself — `getSignaturesForAddress`'s `until` cursor errors with "not found" against this public multi-node cluster, contrary to docs. Rather than patching around that, let's switch discovery to a timestamp-based watermark instead of an opaque signature cursor — avoids relying on `until` consistency entirely.
+- `edit` rug-radar/src/discovery.ts

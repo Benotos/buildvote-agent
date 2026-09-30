@@ -150,8 +150,14 @@ export class SolanaRpcClient {
     return value;
   }
 
-  async getSignaturesForAddress(address: string, limit = 25): Promise<SignatureInfo[]> {
-    return this.request<SignatureInfo[]>("getSignaturesForAddress", [address, { limit }]);
+  async getSignaturesForAddress(
+    address: string,
+    limit = 25,
+    until?: string,
+  ): Promise<SignatureInfo[]> {
+    const config: { limit: number; until?: string } = { limit };
+    if (until) config.until = until;
+    return this.request<SignatureInfo[]>("getSignaturesForAddress", [address, config]);
   }
 
   async getTransaction(signature: string): Promise<ParsedTransaction | null> {
