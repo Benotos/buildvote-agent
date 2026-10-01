@@ -156,9 +156,57 @@ test("throws RpcError on an RPC-level error response", async () => {
   );
 });
 
-test("throws on an HTTP-level error", async () => {
-  const client = new SolanaRpcClient("https://example.test/rpc", fixtureFetch(undefined, { status: 429 }));
+test("throws on an HTTP-level error with no retries configured", async () => {
+  const client = new SolanaRpcClient("https://example.test/rpc", fixtureFetch(undefined, { status: 429 }), {
+    maxRetries: 0,
+  });
   await assert.rejects(() => client.getTokenSupply("Mint1"), /RPC HTTP error 429/);
+});
+
+test("retries on 429 and succeeds once the rate limit clears", async () => {
+  let call = 0;
+  const fetchImpl: FetchLike = (async () => {
+    call++;
+    if (call <= 2) {
+      return new Response("", { status: 429 });
+    }
+    return new Response(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: { context: { slot: 1 }, value: { amount: "1", decimals: 0, uiAmount: 1, uiAmountString: "1" } },
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  }) as FetchLike;
+
+  const delays: number[] = [];
+  const client = new SolanaRpcClient("https://example.test/rpc", fetchImpl, {
+    sleep: async (ms) => {
+      delays.push(ms);
+    },
+  });
+
+  const supply = await client.getTokenSupply("Mint1");
+  assert.equal(supply.amount, "1");
+  assert.equal(call, 3);
+  assert.deepEqual(delays, [300, 600]);
+});
+
+test("gives up after maxRetries consecutive 429s and throws", async () => {
+  let call = 0;
+  const fetchImpl: FetchLike = (async () => {
+    call++;
+    return new Response("", { status: 429 });
+  }) as FetchLike;
+
+  const client = new SolanaRpcClient("https://example.test/rpc", fetchImpl, {
+    maxRetries: 2,
+    sleep: async () => {},
+  });
+
+  await assert.rejects(() => client.getTokenSupply("Mint1"), /RPC HTTP error 429/);
+  assert.equal(call, 3); // initial attempt + 2 retries
 });
 
 test("safeGetTransaction returns the transaction on success", async () => {

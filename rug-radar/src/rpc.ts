@@ -100,30 +100,62 @@ interface RpcResponse<T> {
   error?: { code: number; message: string };
 }
 
+// The public RPC's rate limit is tight enough that back-to-back calls (e.g.
+// discovery's getTransaction per signature) routinely hit HTTP 429 — observed
+// against real mainnet-beta, not a hypothetical. Retrying with backoff turns
+// that into a short delay instead of a dropped transaction.
+export interface RetryOptions {
+  maxRetries?: number;
+  baseDelayMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+const DEFAULT_MAX_RETRIES = 4;
+const DEFAULT_BASE_DELAY_MS = 300;
+
+function defaultSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class SolanaRpcClient {
   private nextId = 1;
+  private readonly maxRetries: number;
+  private readonly baseDelayMs: number;
+  private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(
     private readonly url: string,
     private readonly fetchImpl: FetchLike = fetch,
-  ) {}
+    retry: RetryOptions = {},
+  ) {
+    this.maxRetries = retry.maxRetries ?? DEFAULT_MAX_RETRIES;
+    this.baseDelayMs = retry.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
+    this.sleep = retry.sleep ?? defaultSleep;
+  }
 
   private async request<T>(method: string, params: unknown[]): Promise<T> {
-    const res = await this.fetchImpl(this.url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: this.nextId++, method, params }),
-    });
+    for (let attempt = 0; ; attempt++) {
+      const res = await this.fetchImpl(this.url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: this.nextId++, method, params }),
+      });
 
-    if (!res.ok) {
-      throw new Error(`RPC HTTP error ${res.status} for ${method}`);
-    }
+      if (res.status === 429 && attempt < this.maxRetries) {
+        await this.sleep(this.baseDelayMs * 2 ** attempt);
+        continue;
+      }
 
-    const body = (await res.json()) as RpcResponse<T>;
-    if (body.error) {
-      throw new RpcError(body.error.message, body.error.code);
+      if (!res.ok) {
+        throw new Error(`RPC HTTP error ${res.status} for ${method}`);
+      }
+
+      const body = (await res.json()) as RpcResponse<T>;
+      if (body.error) {
+        throw new RpcError(body.error.message, body.error.code);
+      }
+      return body.result as T;
     }
-    return body.result as T;
   }
 
   async getTokenSupply(mint: string): Promise<RpcTokenAmount> {
@@ -161,9 +193,13 @@ export class SolanaRpcClient {
   }
 
   async getTransaction(signature: string): Promise<ParsedTransaction | null> {
+    // 1, not 0: live mainnet-beta now rejects every current transaction with
+    // "Transaction version (1) is not supported by the requesting client"
+    // when this was 0 (observed live — most/all recent transactions use
+    // version 1, not legacy or v0). Bump again if a future version appears.
     return this.request<ParsedTransaction | null>("getTransaction", [
       signature,
-      { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 },
+      { encoding: "jsonParsed", maxSupportedTransactionVersion: 1 },
     ]);
   }
 }

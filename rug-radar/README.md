@@ -4,9 +4,12 @@ Live risk scoring for new pump.fun token launches on Solana, built from public
 on-chain data only. Watches new launches, scores each one from a handful of
 signals, and serves a small live feed page.
 
-Status: data layer, all four signals, and the combined score are built; the
-live feed wiring (real launch discovery + rendering) is what's left — see
-`../TASK.md` for the plan and `../PROGRESS.md` for where things stand.
+Status: all five steps of `../TASK.md` are built — data layer, all four
+signals, the combined score, launch discovery, and the live feed page — and
+have been sanity-checked against live mainnet-beta, not just offline
+fixtures. See `../PROGRESS.md` for the full history and known limitations
+(the biggest one: pump.fun's transaction volume is high enough that polling
+signatures under-samples new launches — see "Known limitations" below).
 
 ## Data layer
 
@@ -69,6 +72,45 @@ holder concentration — the most direct rug-pull indicators — carry double
 the weight of wallet-behavior signals like bundled buys; any signal not
 listed defaults to a weight of 1, so the combiner doesn't need updating
 every time a new signal lands.
+
+## Live feed
+
+`src/discovery.ts` polls the pump.fun program ID's own signature history for
+new `create`/`create_v2` instructions, tracking a timestamp watermark so each
+poll only looks at launches newer than the last one. `src/pipeline.ts` turns
+one discovered launch into a full `LaunchScore` by running all four signals'
+data-fetch + score functions (a signal that fails to fetch — e.g. too early
+for holder data to settle — is dropped rather than failing the whole
+launch). `src/poller.ts` ties discovery → pipeline → `src/feed.ts` (a
+bounded in-memory list, newest first) into one poll cycle; `src/server.ts`
+runs it on a 15s interval and serves the result from `GET /api/feed`.
+`public/index.html` polls that endpoint every 10s and renders each launch's
+score and per-signal reasons.
+
+`src/rpc.ts` retries `getTransaction`/other calls with backoff on HTTP 429
+(the public RPC rate-limits aggressively) and requests
+`maxSupportedTransactionVersion: 1` (mainnet-beta now rejects `0` for most
+current transactions — both confirmed against live traffic, not guessed).
+
+### Known limitations
+
+- **Discovery under-samples.** Confirmed live: the pump.fun program sees
+  roughly 500 tx/second across every instruction type combined (buy, sell,
+  create, migrate) — 1000 signatures from `getSignaturesForAddress` span
+  only ~2 seconds. A poll every 15s scanning the most recent ~50 signatures
+  therefore catches a small slice of real launches, not all of them.
+  Raising the per-poll limit doesn't fix this (the firehose dwarfs any sane
+  limit) and makes rate-limiting worse, since each signature needs its own
+  `getTransaction` call. A real fix needs a different discovery mechanism —
+  most likely a websocket `logsSubscribe` with a `mentions` filter on the
+  program, parsing `"Instruction: Create"` out of the log lines that arrive
+  for free with the subscription instead of polling + fetching each
+  transaction. Not attempted yet; see `src/discovery.ts`'s
+  `FindNewLaunchesOptions.limit` comment.
+- `fetchDeployerHistoryInput`'s and `findFundingSource`'s (in
+  `src/data/bundledBuys.ts`) signature-count lookback limits mean both
+  under-count a wallet with a very long history — acceptable for the common
+  case (freshly created deployer/buyer wallets) but not exhaustive.
 
 ## Setup
 

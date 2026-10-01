@@ -18,9 +18,20 @@ export interface DiscoveredLaunch {
 type DiscoveryFetcher = Pick<SolanaRpcClient, "getSignaturesForAddress" | "getTransaction">;
 
 export interface FindNewLaunchesOptions {
-  // How many of the program's most recent signatures to scan per poll. A
-  // burst of more than this many launches between polls will be under-counted
-  // rather than scanned exhaustively.
+  // How many of the program's most recent signatures to scan per poll.
+  // KNOWN LIMITATION (confirmed live, session 10): the pump.fun program ID
+  // sees roughly 500 transactions/second across *all* instruction types
+  // (buy/sell/create/migrate combined) — 1000 signatures from
+  // getSignaturesForAddress span only ~2 seconds of real traffic. A 15s poll
+  // with this default therefore only samples a sliver of each interval and
+  // will miss most create instructions, not just "bursts". Raising this
+  // doesn't fix coverage (the firehose is way bigger than any sane limit)
+  // and makes the 429 problem worse (one getTransaction call per signature
+  // against a public, rate-limited RPC). A real fix needs a different
+  // discovery mechanism — e.g. a websocket logsSubscribe with a `mentions`
+  // filter on the program, parsing "Instruction: Create" out of the log
+  // lines that arrive for free with the subscription, instead of polling
+  // signatures and fetching each transaction — not attempted yet.
   limit?: number;
 }
 

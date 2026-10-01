@@ -334,3 +334,174 @@
   pipeline against one real, recent launch would be a good sanity check
   that the account layouts and instruction decoding hold up against live
   data, not just hand-built fixtures.
+
+## Session 6 — 2026-09-30
+
+*(Note: this entry was written retroactively in Session 8 — the run that did
+this work hit its step limit right after finishing and never updated this
+file. Reconstructed from `logs/session-0008.md`, which records every step.)*
+
+### Done
+- Step 5, first half: wired discovery into the live feed.
+  `src/feed.ts` — `LiveFeed`, a bounded in-memory list of scored launches
+  (newest first, default max 50). `src/poller.ts` — `pollOnce()`: one poll
+  cycle (find new launches since the last watermark → score each via the
+  pipeline → add to the feed), kept separate from `setInterval` so a single
+  cycle is testable without real timers.
+- `src/server.ts` rewritten from the step-1 stub: boots the RPC client and
+  `LiveFeed`, runs `pollOnce` immediately and then every 15s, serves
+  `GET /api/feed` with the real feed contents instead of `{ launches: [] }`.
+- `public/index.html` rewritten from the static placeholder: polls
+  `/api/feed` every 10s and renders each launch's mint, overall score
+  (color-coded low/medium/high), and per-signal name + score + reasons.
+  Checked `reasons` strings across all four signals before rendering via
+  `innerHTML` — they're all server-built from numbers (percentages, SOL
+  amounts, counts), never raw on-chain text, so no injection risk from
+  rendering them directly.
+- First live-RPC smoke test of the full pipeline (public mainnet-beta, no
+  keys) found a real bug: `getTransaction` can return "not found" for a
+  signature `getSignaturesForAddress` had just returned (the public RPC is
+  multiple nodes behind a load balancer, not perfectly consistent), which
+  crashed the whole discovery poll on one bad signature. Fixed in
+  `discovery.ts` by catching and skipping a failed `getTransaction` instead
+  of letting it abort the scan. Also started switching discovery away from
+  `getSignaturesForAddress`'s `until` signature cursor toward a timestamp
+  watermark, after seeing the `until` cursor itself error against this
+  cluster — finished in Session 7.
+
+### Works
+- `npm run typecheck` and `npm run build` clean.
+- `npm test`: 76/76 passing, still all offline.
+- Manually booted the server with an unreachable RPC URL to confirm it
+  boots, serves the stub feed, and logs/continues instead of crashing when
+  polling fails.
+
+### Next
+- Finish the `until`-cursor → timestamp-watermark switch in `discovery.ts`
+  (in progress when this session ended).
+- Re-run the live smoke test once that's done.
+
+## Session 7 — 2026-10-01
+
+*(Also reconstructed retroactively in Session 8, from `logs/session-0009.md`
+— this run also hit its step limit right after finishing.)*
+
+### Done
+- Found and fixed a bug left from Session 6's interrupted cursor→watermark
+  switch: `discovery.ts` still returned a field named `newestSignature`
+  instead of the new `newestBlockTime`, with stale call sites in
+  `poller.ts`/`server.ts`/tests — would not have typechecked. Fixed all
+  call sites consistently and rewrote `discovery.test.ts`/`poller.test.ts`
+  for the timestamp-watermark API.
+- Ran the live smoke test again and found two more real bugs: `getTransaction`
+  calls in `src/data/deployerHistory.ts` and `src/data/bundledBuys.ts` had
+  the same unguarded-failure problem Session 6 fixed in `discovery.ts` —
+  one bad transaction in a wallet's history crashed that whole signal
+  fetch. Rather than duplicating the try/catch in four places, factored it
+  into a shared `safeGetTransaction()` helper in `src/rpc.ts` and switched
+  all four call sites (discovery, deployer history x1, bundled buys x2) to
+  use it. Added `rpc.test.ts` coverage for the helper itself.
+- Confirmed the live pipeline works end-to-end against real mainnet-beta
+  data after these fixes (discovery finds launches, pipeline scores them,
+  no crashes on flaky-RPC edge cases). Deleted the scratch smoke-test
+  script (`tmp-smoke.ts`) that had been accidentally left tracked from the
+  interrupted Session 6.
+
+### Works
+- `npm run typecheck` and `npm run build` clean.
+- `npm test`: 79/79 passing, all offline.
+- Live pipeline confirmed working end-to-end against real mainnet-beta RPC
+  calls (manual smoke test, not part of the automated suite).
+
+### Next
+- All five TASK.md steps now appear complete. A good next step is a
+  longer/more adversarial live-RPC check — e.g. does discovery actually
+  find launches at a realistic poll cadence, and does the public RPC's
+  rate limit get hit under real polling frequency (inferred from where
+  this run left off; it hit its step limit immediately after the above).
+
+## Session 8 — 2026-10-01
+
+### Done
+- Found this file (PROGRESS.md) badly out of date: it stopped at "Session 5"
+  even though the code on `main` already had discovery, the pipeline, the
+  poller, the live feed, and the real server wiring — all of TASK.md's five
+  steps, done across two runs (`logs/session-0008.md`,
+  `logs/session-0009.md`) that both hit their step limit right after
+  finishing and before writing here. Backfilled those as Session 6 and
+  Session 7 above from the step logs (which record everything), so this
+  file matches what is actually in the repo.
+- Ran a real live-RPC smoke test (public mainnet-beta, no keys, same as
+  Sessions 6-7) to sanity-check the "done" pipeline rather than taking the
+  reconstructed history at face value, and found two more real problems:
+  1. **No retry on HTTP 429.** Back-to-back `getTransaction` calls (e.g.
+     discovery scanning many signatures in one poll) hit the public RPC's
+     rate limit almost immediately, and `rpc.ts` had no retry — every 429
+     just failed the call outright (caught by `safeGetTransaction` where
+     used, but still silently drops data). Fixed: `SolanaRpcClient` now
+     retries on 429 with exponential backoff (4 retries, 300ms base,
+     configurable, injectable `sleep` so tests stay instant and offline).
+     3 new tests in `rpc.test.ts` (retry-then-succeed, retries-exhausted,
+     and the pre-existing 429 test updated to pass `maxRetries: 0` so it
+     still checks the no-retry-left path).
+  2. **`getTransaction` requested the wrong transaction version.** It
+     hardcoded `maxSupportedTransactionVersion: 0`; live mainnet-beta now
+     rejects that for most current transactions with "Transaction version
+     (1) is not supported by the requesting client". This means Session 7's
+     "live pipeline confirmed working end-to-end" was likely seeing a lot
+     of silently-dropped transactions (via `safeGetTransaction`'s
+     catch-and-skip) rather than genuinely resolving them — the smoke test
+     logged the error but didn't fail loudly, so this had been hiding in
+     plain sight. Fixed by bumping to `maxSupportedTransactionVersion: 1`;
+     confirmed against live data this clears the error.
+  3. **Discovery coverage is a bigger problem than documented.** Checked
+     directly: `getSignaturesForAddress` on the pump.fun program ID returns
+     1000 signatures spanning only ~2 seconds of real traffic (~500 tx/sec
+     across all instruction types, not just creates). The existing
+     `DEFAULT_LIMIT = 50` comment in `discovery.ts` described this as "a
+     burst... will be under-counted", which understates it badly — at this
+     volume, a 15s poll scanning 50 signatures catches a small slice of
+     launches, not occasional bursts. Rewrote the comment to say so
+     plainly and explain why raising the limit doesn't fix it (volume is
+     far beyond any sane limit, and more signatures means more
+     `getTransaction` calls, i.e. more 429s). Documented the real fix this
+     needs — a websocket `logsSubscribe` with a `mentions` filter, parsing
+     `"Instruction: Create"` out of the pushed log lines instead of polling
+     signatures and fetching each transaction — as a known limitation in
+     `rug-radar/README.md`, not attempted this session (meaningfully bigger
+     than a small step: new transport, reconnection handling, log parsing).
+- Updated `rug-radar/README.md`: status line now says all five TASK.md
+  steps are built and live-sanity-checked (not "what's left"), added a
+  "Live feed" section describing discovery → pipeline → poller → feed →
+  server → page end-to-end, and a "Known limitations" section (discovery
+  under-sampling, with numbers; the existing lookback-limit caveats from
+  earlier sessions moved here too).
+
+### Works
+- `npm run typecheck` and `npm run build` clean.
+- `npm test`: 81/81 passing, all offline (new retry tests use an injected
+  fake `sleep`, so they run in milliseconds despite testing backoff
+  behavior — no real network calls anywhere in the suite).
+- Live-RPC smoke test (manual, public mainnet-beta, not part of the test
+  suite) with both fixes in place: no more 429s, no more transaction
+  version errors. Did not happen to catch a `create` instruction in the
+  scanned window this run — expected and consistent with the coverage
+  limitation documented above, not a new bug.
+
+### Next
+- The discovery coverage gap (above) is the main remaining issue — the
+  live feed currently runs in production but will visibly under-report
+  launches. A websocket-based redesign (`logsSubscribe` with a `mentions`
+  filter) is the planned fix; worth scoping as its own session rather than
+  rushing, since it changes the transport (no more polling on an interval)
+  and needs reconnection/backoff handling of its own.
+- No automated test exercises the real `server.ts` against live RPC (by
+  design, per the "offline tests" rule) — the live-RPC smoke testing done
+  in Sessions 6-8 has been manual and not repeatable without rerunning it
+  by hand (a throwaway script, deleted before each session ends, never
+  committed). Worth keeping that habit for any future change that touches
+  the data layer.
+- All five TASK.md steps are functionally complete; remaining work is
+  hardening (discovery coverage, the lookback-limit caveats noted in
+  earlier sessions for deployer history and bundled buys) rather than new
+  features.
