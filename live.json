@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-01T13:12:33Z",
+  "updated_at": "2026-10-01T13:13:03Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 10,
     "started_at": "2026-10-01T13:08:56Z",
-    "turns": 33
+    "turns": 39
   },
   "round": {
     "number": null,
@@ -128,46 +128,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T05:52:01Z",
-      "kind": "read",
-      "text": "rug-radar/src/data/bundledBuys.ts"
-    },
-    {
-      "t": "2026-10-01T05:52:09Z",
-      "kind": "think",
-      "text": "Found two more real bugs via the live smoke test: `deployerHistory.ts` and `bundledBuys.ts` both call `rpc.getTransaction` without catching failures \u2014 the same flaky-public-RPC is\u2026"
-    },
-    {
-      "t": "2026-10-01T05:52:10Z",
-      "kind": "run",
-      "text": "grep -n \"^export\\|^import\\|^class\" src/rpc.ts | head -30"
-    },
-    {
-      "t": "2026-10-01T05:52:12Z",
-      "kind": "read",
-      "text": "rug-radar/src/rpc.ts"
-    },
-    {
-      "t": "2026-10-01T05:52:18Z",
-      "kind": "edit",
-      "text": "rug-radar/src/rpc.ts"
-    },
-    {
-      "t": "2026-10-01T05:52:19Z",
-      "kind": "think",
-      "text": "Now update `discovery.ts` to use the shared helper instead of its own inline try/catch:"
-    },
-    {
-      "t": "2026-10-01T05:52:19Z",
-      "kind": "read",
-      "text": "rug-radar/src/discovery.ts"
-    },
-    {
-      "t": "2026-10-01T05:52:22Z",
-      "kind": "edit",
-      "text": "rug-radar/src/discovery.ts"
-    },
     {
       "t": "2026-10-01T05:52:25Z",
       "kind": "edit",
@@ -527,6 +487,46 @@
       "t": "2026-10-01T13:12:33Z",
       "kind": "think",
       "text": "Let me verify this volume/coverage issue is real and not a fluke, check it doesn't contradict anything, then fix the misleading comment in `discovery.ts` to reflect the true sever\u2026"
+    },
+    {
+      "t": "2026-10-01T13:12:34Z",
+      "kind": "read",
+      "text": "rug-radar/src/discovery.ts"
+    },
+    {
+      "t": "2026-10-01T13:12:39Z",
+      "kind": "edit",
+      "text": "rug-radar/src/discovery.ts"
+    },
+    {
+      "t": "2026-10-01T13:12:40Z",
+      "kind": "think",
+      "text": "Now let's clean up the temporary smoke-test scripts and run the full verification suite one more time."
+    },
+    {
+      "t": "2026-10-01T13:12:41Z",
+      "kind": "run",
+      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && rm -f smoke-tmp.ts increase-smoke.ts && git status --short -- . ; echo \"---\" && npm run typecheck 2>&1 | tail -20\u2026"
+    },
+    {
+      "t": "2026-10-01T13:12:49Z",
+      "kind": "think",
+      "text": "Clean: typecheck, build, and all 81 tests pass, no scratch files left behind. Now let me update the README to reflect the current (complete) state, then write a thorough PROGRESS.\u2026"
+    },
+    {
+      "t": "2026-10-01T13:12:49Z",
+      "kind": "read",
+      "text": "rug-radar/README.md"
+    },
+    {
+      "t": "2026-10-01T13:12:54Z",
+      "kind": "edit",
+      "text": "rug-radar/README.md"
+    },
+    {
+      "t": "2026-10-01T13:13:03Z",
+      "kind": "edit",
+      "text": "rug-radar/README.md"
     }
   ],
   "schedule": {
