@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-01T20:23:55Z",
+  "updated_at": "2026-10-01T20:24:24Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 11,
     "started_at": "2026-10-01T20:20:34Z",
-    "turns": 28
+    "turns": 35
   },
   "round": {
     "number": null,
@@ -137,56 +137,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T13:09:58Z",
-      "kind": "run",
-      "text": "curl -s -m 10 -X POST https://api.mainnet-beta.solana.com -H \"Content-Type: application/json\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getHealth\"}' ; echo; echo \"exit:$?\""
-    },
-    {
-      "t": "2026-10-01T13:10:00Z",
-      "kind": "think",
-      "text": "Network access to the public RPC works. Let me run a real smoke test of the discovery + pipeline against live mainnet data, without modifying any source files."
-    },
-    {
-      "t": "2026-10-01T13:10:04Z",
-      "kind": "run",
-      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && cat > /tmp/smoke.ts << 'EOF' import { SolanaRpcClient } from \"./src/rpc.js\"; import { findNewLaunches } from \"./s\u2026"
-    },
-    {
-      "t": "2026-10-01T13:10:06Z",
-      "kind": "think",
-      "text": "Relative path issue since the script is in /tmp. Let me put the smoke test inside the project directory instead (temp file, not committed)."
-    },
-    {
-      "t": "2026-10-01T13:10:07Z",
-      "kind": "run",
-      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && cat > /tmp/smoke.mjs << 'EOF' EOF mv /tmp/smoke.ts ./smoke-tmp.ts npx tsx smoke-tmp.ts"
-    },
-    {
-      "t": "2026-10-01T13:10:15Z",
-      "kind": "think",
-      "text": "Found something real: rapid-fire `getTransaction` calls against the public RPC immediately hit HTTP 429 rate limits, so discovery silently finds 0 launches in practice. Let me che\u2026"
-    },
-    {
-      "t": "2026-10-01T13:10:15Z",
-      "kind": "read",
-      "text": "rug-radar/src/rpc.ts"
-    },
-    {
-      "t": "2026-10-01T13:10:20Z",
-      "kind": "think",
-      "text": "This confirms a real robustness gap: no retry/backoff on HTTP 429 means the public RPC's aggressive rate limiting silently kills discovery in practice. Let me check the existing t\u2026"
-    },
-    {
-      "t": "2026-10-01T13:10:20Z",
-      "kind": "read",
-      "text": "rug-radar/src/rpc.test.ts"
-    },
-    {
-      "t": "2026-10-01T13:10:26Z",
-      "kind": "run",
-      "text": "grep -rn \"new SolanaRpcClient\" src/"
-    },
     {
       "t": "2026-10-01T13:10:38Z",
       "kind": "think",
@@ -536,6 +486,56 @@
       "t": "2026-10-01T20:23:55Z",
       "kind": "edit",
       "text": "rug-radar/src/wsLogParser.test.ts"
+    },
+    {
+      "t": "2026-10-01T20:24:06Z",
+      "kind": "edit",
+      "text": "rug-radar/src/wsLogParser.test.ts"
+    },
+    {
+      "t": "2026-10-01T20:24:07Z",
+      "kind": "think",
+      "text": "Now let's run these tests to confirm the parser works before moving on."
+    },
+    {
+      "t": "2026-10-01T20:24:07Z",
+      "kind": "run",
+      "text": "node --import tsx --test --test-reporter spec src/wsLogParser.test.ts 2>&1 | tail -40"
+    },
+    {
+      "t": "2026-10-01T20:24:09Z",
+      "kind": "think",
+      "text": "Need node_modules installed (not persisted between sessions)."
+    },
+    {
+      "t": "2026-10-01T20:24:09Z",
+      "kind": "run",
+      "text": "npm install --no-audit --no-fund 2>&1 | tail -10"
+    },
+    {
+      "t": "2026-10-01T20:24:11Z",
+      "kind": "run",
+      "text": "node --import tsx --test --test-reporter spec src/wsLogParser.test.ts 2>&1 | tail -40"
+    },
+    {
+      "t": "2026-10-01T20:24:13Z",
+      "kind": "think",
+      "text": "All 6 pass. Now let's extract `resolveLaunchFromSignature` in discovery.ts."
+    },
+    {
+      "t": "2026-10-01T20:24:13Z",
+      "kind": "tool",
+      "text": "TaskUpdate"
+    },
+    {
+      "t": "2026-10-01T20:24:15Z",
+      "kind": "tool",
+      "text": "TaskUpdate"
+    },
+    {
+      "t": "2026-10-01T20:24:24Z",
+      "kind": "edit",
+      "text": "rug-radar/src/discovery.ts"
     }
   ],
   "schedule": {
