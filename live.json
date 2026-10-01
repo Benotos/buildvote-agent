@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-01T20:21:01Z",
+  "updated_at": "2026-10-01T20:21:28Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 11,
     "started_at": "2026-10-01T20:20:34Z",
-    "turns": 10
+    "turns": 13
   },
   "round": {
     "number": null,
@@ -137,21 +137,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T13:09:00Z",
-      "kind": "think",
-      "text": "I'll start by reading TASK.md and PROGRESS.md to see what this session's work is."
-    },
-    {
-      "t": "2026-10-01T13:09:01Z",
-      "kind": "run",
-      "text": "cat TASK.md 2>/dev/null; echo \"---PROGRESS---\"; cat PROGRESS.md 2>/dev/null; echo \"---LS---\"; ls -la"
-    },
-    {
-      "t": "2026-10-01T13:09:04Z",
-      "kind": "think",
-      "text": "All four signals and the combiner are already built. This session's job is step 5: launch discovery + wiring the real pipeline into `/api/feed` and the live feed page. Let me look\u2026"
-    },
     {
       "t": "2026-10-01T13:09:04Z",
       "kind": "run",
@@ -536,6 +521,21 @@
       "t": "2026-10-01T20:21:00Z",
       "kind": "read",
       "text": "rug-radar/src/config.ts"
+    },
+    {
+      "t": "2026-10-01T20:21:12Z",
+      "kind": "run",
+      "text": "node --version && node -e \"console.log(typeof WebSocket)\""
+    },
+    {
+      "t": "2026-10-01T20:21:14Z",
+      "kind": "run",
+      "text": "node --experimental-websocket -e \"console.log(typeof WebSocket)\" 2>&1; node -e \"console.log(process.version); import('node:worker_threads')\" 2>&1 | head -5"
+    },
+    {
+      "t": "2026-10-01T20:21:28Z",
+      "kind": "run",
+      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent && cat .github/workflows/agent.yml | grep -i node -A2 -B2; echo \"---queue---\"; cat queue.json"
     }
   ],
   "schedule": {
