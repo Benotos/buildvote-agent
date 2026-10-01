@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-01T20:20:34Z",
+  "updated_at": "2026-10-01T20:21:01Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 11,
     "started_at": "2026-10-01T20:20:34Z",
-    "turns": 0
+    "turns": 10
   },
   "round": {
     "number": null,
@@ -137,56 +137,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T05:52:47Z",
-      "kind": "edit",
-      "text": "rug-radar/src/rpc.test.ts"
-    },
-    {
-      "t": "2026-10-01T05:52:51Z",
-      "kind": "edit",
-      "text": "rug-radar/src/rpc.test.ts"
-    },
-    {
-      "t": "2026-10-01T05:52:52Z",
-      "kind": "run",
-      "text": "npm run typecheck 2>&1 | tail -40 && echo \"---TEST---\" && npm test 2>&1 | tail -20"
-    },
-    {
-      "t": "2026-10-01T05:52:58Z",
-      "kind": "think",
-      "text": "79/79 passing, typecheck clean. Now let's re-run the live smoke test to confirm the fix resolved the deployer-history failure."
-    },
-    {
-      "t": "2026-10-01T05:52:58Z",
-      "kind": "run",
-      "text": "timeout 100 npx tsx tmp-smoke.ts 2>&1 | head -150"
-    },
-    {
-      "t": "2026-10-01T05:53:22Z",
-      "kind": "run",
-      "text": "cat tmp-smoke.ts"
-    },
-    {
-      "t": "2026-10-01T05:53:34Z",
-      "kind": "think",
-      "text": "Live pipeline confirmed working end-to-end, and the resilience fix prevents crashes on malformed transactions. Now let's clean up the scratch smoke-test file."
-    },
-    {
-      "t": "2026-10-01T05:53:35Z",
-      "kind": "run",
-      "text": "git rm -q --cached tmp-smoke.ts 2>/dev/null; rm -f tmp-smoke.ts; ls"
-    },
-    {
-      "t": "2026-10-01T05:53:37Z",
-      "kind": "done",
-      "text": "Session 9 reached its step limit, continues next session \u00b7 60 steps \u00b7 covered by Claude subscription ($2.20 API value)"
-    },
-    {
-      "t": "2026-10-01T13:08:56Z",
-      "kind": "start",
-      "text": "Session 10 started: Rug radar: live launch scoring"
-    },
     {
       "t": "2026-10-01T13:09:00Z",
       "kind": "think",
@@ -536,6 +486,56 @@
       "t": "2026-10-01T20:20:34Z",
       "kind": "start",
       "text": "Session 11 started: Rug radar: live launch scoring"
+    },
+    {
+      "t": "2026-10-01T20:20:38Z",
+      "kind": "run",
+      "text": "cat TASK.md 2>/dev/null; echo \"---PROGRESS---\"; cat PROGRESS.md 2>/dev/null; echo \"---LS---\"; ls -la"
+    },
+    {
+      "t": "2026-10-01T20:20:39Z",
+      "kind": "read",
+      "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-01T20:20:43Z",
+      "kind": "run",
+      "text": "git log --oneline -20 && echo --- && git show --stat HEAD | head -50"
+    },
+    {
+      "t": "2026-10-01T20:20:45Z",
+      "kind": "run",
+      "text": "echo \"=== session-0009 ===\" && cat logs/session-0009.md && echo \"=== session-0010 ===\" && cat logs/session-0010.md"
+    },
+    {
+      "t": "2026-10-01T20:20:53Z",
+      "kind": "run",
+      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && find src -type f -name \"*.ts\" | sort && echo \"---package.json---\" && cat package.json"
+    },
+    {
+      "t": "2026-10-01T20:20:54Z",
+      "kind": "read",
+      "text": "rug-radar/src/discovery.ts"
+    },
+    {
+      "t": "2026-10-01T20:20:56Z",
+      "kind": "read",
+      "text": "rug-radar/src/rpc.ts"
+    },
+    {
+      "t": "2026-10-01T20:20:57Z",
+      "kind": "read",
+      "text": "rug-radar/src/poller.ts"
+    },
+    {
+      "t": "2026-10-01T20:20:58Z",
+      "kind": "read",
+      "text": "rug-radar/src/server.ts"
+    },
+    {
+      "t": "2026-10-01T20:21:00Z",
+      "kind": "read",
+      "text": "rug-radar/src/config.ts"
     }
   ],
   "schedule": {
