@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-01T20:22:25Z",
+  "updated_at": "2026-10-01T20:22:52Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 11,
     "started_at": "2026-10-01T20:20:34Z",
-    "turns": 17
+    "turns": 19
   },
   "round": {
     "number": null,
@@ -137,16 +137,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T13:09:16Z",
-      "kind": "run",
-      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent && git log --oneline -20 && echo \"---\" && git log -3 -- rug-radar/src/discovery.ts rug-radar/src/pipeline.ts rug-radar/src/pol\u2026"
-    },
-    {
-      "t": "2026-10-01T13:09:19Z",
-      "kind": "run",
-      "text": "wc -l PROGRESS.md && tail -5 PROGRESS.md"
-    },
     {
       "t": "2026-10-01T13:09:23Z",
       "kind": "think",
@@ -536,6 +526,16 @@
       "t": "2026-10-01T20:22:00Z",
       "kind": "run",
       "text": "timeout 55 node --experimental-websocket probe-ws.mjs 2>&1 | head -150"
+    },
+    {
+      "t": "2026-10-01T20:22:40Z",
+      "kind": "read",
+      "text": "rug-radar/src/feed.ts"
+    },
+    {
+      "t": "2026-10-01T20:22:45Z",
+      "kind": "read",
+      "text": "rug-radar/src/pipeline.ts"
     }
   ],
   "schedule": {
