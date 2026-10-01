@@ -1,3 +1,4 @@
+import { safeGetTransaction } from "../rpc.js";
 import type { ParsedTransaction, SolanaRpcClient } from "../rpc.js";
 import type { EarlyBuy } from "../signals/bundledBuys.js";
 
@@ -36,7 +37,7 @@ export async function fetchBundledBuysInput(
   const fundingCache = new Map<string, string | null>();
 
   for (const sig of early) {
-    const tx = await rpc.getTransaction(sig.signature);
+    const tx = await safeGetTransaction(rpc, sig.signature);
     if (!tx) continue;
 
     const buyer = findTokenReceiver(tx, mint);
@@ -88,7 +89,7 @@ async function findFundingSource(
   // getSignaturesForAddress returns newest-first, so the last entry is the
   // oldest one visible within our limit.
   const earliest = signatures[signatures.length - 1];
-  const tx = await rpc.getTransaction(earliest.signature);
+  const tx = await safeGetTransaction(rpc, earliest.signature);
   if (!tx) return null;
 
   return findSolSender(tx, buyer);

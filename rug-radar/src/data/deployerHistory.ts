@@ -1,4 +1,5 @@
 import { decodeBondingCurve, decodeCreateInstruction, PUMP_FUN_PROGRAM_ID } from "../pumpfun.js";
+import { safeGetTransaction } from "../rpc.js";
 import type { ParsedTransaction, SolanaRpcClient } from "../rpc.js";
 import type { PriorLaunch } from "../signals/deployerHistory.js";
 
@@ -30,7 +31,7 @@ export async function fetchDeployerHistoryInput(
 
   for (const sig of signatures) {
     if (sig.err) continue;
-    const tx = await rpc.getTransaction(sig.signature);
+    const tx = await safeGetTransaction(rpc, sig.signature);
     if (!tx) continue;
 
     const created = findCreatedMint(tx, deployer);

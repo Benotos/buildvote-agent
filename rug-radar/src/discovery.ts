@@ -4,6 +4,7 @@
 // getSignaturesForAddress/getTransaction methods the other data/* modules use.
 
 import { decodeCreateInstruction, PUMP_FUN_PROGRAM_ID } from "./pumpfun.js";
+import { safeGetTransaction } from "./rpc.js";
 import type { ParsedTransaction, SolanaRpcClient } from "./rpc.js";
 
 export interface DiscoveredLaunch {
@@ -62,21 +63,7 @@ export async function findNewLaunches(
   for (const sig of [...signatures].reverse()) {
     if (sig.err || sig.blockTime === null || sig.blockTime <= sinceBlockTime) continue;
 
-    let tx: ParsedTransaction | null;
-    try {
-      tx = await rpc.getTransaction(sig.signature);
-    } catch (err) {
-      // The public RPC cluster is multiple nodes behind a load balancer; a
-      // signature returned by one node's getSignaturesForAddress can briefly
-      // 404 on getTransaction against another. Skip it rather than failing
-      // the whole poll — it'll be picked up as "prior history" on any
-      // signal that later scans this address's signatures anyway.
-      console.error(
-        `getTransaction failed for ${sig.signature}:`,
-        err instanceof Error ? err.message : err,
-      );
-      continue;
-    }
+    const tx = await safeGetTransaction(rpc, sig.signature);
     if (!tx) continue;
 
     const created = findCreateInstruction(tx);
@@ -85,7 +72,7 @@ export async function findNewLaunches(
     launches.push({ ...created, createdAt: sig.blockTime, signature: sig.signature });
   }
 
-  return { launches, newestSignature };
+  return { launches, newestBlockTime };
 }
 
 function findCreateInstruction(

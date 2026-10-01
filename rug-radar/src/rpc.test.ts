@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { SolanaRpcClient, RpcError, type FetchLike } from "./rpc.js";
+import { SolanaRpcClient, RpcError, safeGetTransaction, type FetchLike } from "./rpc.js";
 
 // All fixtures below mirror real Solana JSON-RPC response shapes
 // (https://solana.com/docs/rpc/http). No live network calls happen here.
@@ -159,4 +159,20 @@ test("throws RpcError on an RPC-level error response", async () => {
 test("throws on an HTTP-level error", async () => {
   const client = new SolanaRpcClient("https://example.test/rpc", fixtureFetch(undefined, { status: 429 }));
   await assert.rejects(() => client.getTokenSupply("Mint1"), /RPC HTTP error 429/);
+});
+
+test("safeGetTransaction returns the transaction on success", async () => {
+  const rpc = { getTransaction: async () => ({ ok: true }) as any };
+  const result = await safeGetTransaction(rpc, "sig1");
+  assert.deepEqual(result, { ok: true });
+});
+
+test("safeGetTransaction returns null instead of throwing when getTransaction fails", async () => {
+  const rpc = {
+    getTransaction: async () => {
+      throw new Error("Transaction version (1) is not supported by the requesting client");
+    },
+  };
+  const result = await safeGetTransaction(rpc, "sig1");
+  assert.equal(result, null);
 });

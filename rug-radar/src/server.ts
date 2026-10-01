@@ -13,7 +13,7 @@ const publicDir = path.join(__dirname, "..", "public");
 const config = loadConfig();
 const rpc = new SolanaRpcClient(config.rpcUrl);
 const feed = new LiveFeed();
-const pollState: PollState = { cursor: null };
+const pollState: PollState = { sinceBlockTime: null };
 
 // How often to check the pump.fun program for new launches. Public RPCs rate
 // limit aggressively, so this polls rather than opening a websocket.

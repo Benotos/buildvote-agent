@@ -9,14 +9,14 @@ import type { LiveFeed } from "./feed.js";
 import type { SolanaRpcClient } from "./rpc.js";
 
 export interface PollState {
-  cursor: string | null;
+  sinceBlockTime: number | null;
 }
 
 type PollerRpc = PipelineRpc & Pick<SolanaRpcClient, "getSignaturesForAddress" | "getTransaction">;
 
 export async function pollOnce(rpc: PollerRpc, feed: LiveFeed, state: PollState): Promise<void> {
-  const { launches, newestSignature } = await findNewLaunches(rpc, state.cursor);
-  state.cursor = newestSignature;
+  const { launches, newestBlockTime } = await findNewLaunches(rpc, state.sinceBlockTime);
+  state.sinceBlockTime = newestBlockTime;
 
   for (const launch of launches) {
     try {

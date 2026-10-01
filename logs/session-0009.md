@@ -1,0 +1,90 @@
+# Session 9: Rug radar: live launch scoring
+
+- Started: 2026-10-01T05:48:26Z
+- Ended: 2026-10-01T05:53:35Z
+- Steps: 60
+- Model turns: 61
+- Billing: Claude subscription (API value $2.1961, not billed)
+- Outcome: step limit reached
+
+## Steps
+
+- `run` cat /home/runner/work/buildvote-agent/buildvote-agent/TASK.md 2>/dev/null; echo "---PROGRESS---"; cat /home/runner/work/buildvote-agent/buildvote-agent/PROGRESS.md 2>/dev/null
+- `run` cat /home/runner/.claude/projects/-home-runner-work-buildvote-agent-buildvote-agent/memory/MEMORY.md 2>/dev/null
+- `think` No memory file yet. Let me look at the current repo structure before continuing session 6's work (step 5: discovery + live feed wiring).
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && find . -path ./node_modules -prune -o -type f -print | sort
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent && git status && echo "---LOG---" && git log --oneline -15 && echo "---DIFF STAT HEAD---" && git show --stat HEAD | head -50
+- `run` git show --stat HEAD | tail -30 && echo "---tmp-smoke tracked?---" && git ls-files rug-radar/tmp-smoke.ts && echo "---logs dir---" && ls logs/
+- `run` wc -l PROGRESS.md && tail -5 PROGRESS.md
+- `read` logs/session-0006.md
+- `read` logs/session-0007.md
+- `think` Now let me check session 8 — this is the one likely containing step 5 work not reflected in PROGRESS.md.
+- `read` logs/session-0008.md
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && (npm install --silent 2>&1 | tail -5) && npm run typecheck 2>&1 | tail -60
+- `read` rug-radar/src/discovery.ts
+- `think` Found the bug from the interrupted session: line 88 returns `newestSignature` (old field name) instead of `newestBlockTime` (the new field from the refactor). Let me check the other broken call sites before fixing.
+- `read` rug-radar/src/poller.ts
+- `think` Now let me check discovery.test.ts and server.ts to fix all call sites consistently.
+- `read` rug-radar/src/discovery.test.ts
+- `run` for f in src/pipeline.ts src/feed.ts src/poller.test.ts src/server.ts; do echo "=== $f ==="; cat "$f"; echo; done
+- `run` grep -n "getSignaturesForAddress" -A 15 src/rpc.ts | head -40
+- `run` cat tmp-smoke.ts; echo "---gitignore---"; cat .gitignore 2>/dev/null; echo "---root gitignore---"; cat ../.gitignore 2>/dev/null
+- `run` cat package.json
+- `read` rug-radar/tsconfig.json
+- `run` grep -rn "newestSignature\|\.cursor\b\|cursor:" src tmp-smoke.ts public 2>/dev/null
+- `think` Now I have the full scope. Let me fix each file, starting with discovery.ts.
+- `edit` rug-radar/src/discovery.ts
+- `think` Now `poller.ts`:
+- `edit` rug-radar/src/poller.ts
+- `think` Now `server.ts`:
+- `edit` rug-radar/src/server.ts
+- `read` rug-radar/src/server.ts
+- `edit` rug-radar/src/server.ts
+- `think` Now rewrite `discovery.test.ts` and `poller.test.ts` to match the timestamp-watermark API.
+- `edit` rug-radar/src/discovery.test.ts
+- `read` rug-radar/src/poller.test.ts
+- `edit` rug-radar/src/poller.test.ts
+- `edit` rug-radar/src/poller.test.ts
+- `think` Now let's run typecheck and tests to verify everything is fixed.
+- `run` npm run typecheck 2>&1 | tail -40
+- `think` Typecheck is clean. Now the test suite.
+- `run` npm test 2>&1 | tail -60
+- `think` 77/77 tests pass. Now let's confirm the build, and check `discovery.ts`'s unused `until`-related comment is still accurate, plus check pipeline.test.ts and feed.test.ts for consistency.
+- `run` npm run build 2>&1 | tail -30 && echo "BUILD_OK"
+- `think` Everything is green: typecheck, build, and all 77 tests pass. Now let's clean up `tmp-smoke.ts` — it's a scratch live-RPC script left committed from the interrupted session, referencing the old API.
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent && git log --follow --oneline -- rug-radar/tmp-smoke.ts | head -5
+- `read` rug-radar/tmp-smoke.ts
+- `edit` rug-radar/tmp-smoke.ts
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && timeout 90 npx tsx tmp-smoke.ts 2>&1 | head -100
+- `edit` rug-radar/tmp-smoke.ts
+- `run` timeout 100 npx tsx tmp-smoke.ts 2>&1 | head -150
+- `run` grep -n "maxSupportedTransactionVersion" -r src
+- `read` rug-radar/src/data/deployerHistory.ts
+- `read` rug-radar/src/data/bundledBuys.ts
+- `think` Found two more real bugs via the live smoke test: `deployerHistory.ts` and `bundledBuys.ts` both call `rpc.getTransaction` without catching failures — the same flaky-public-RPC issue `discovery.ts` already had to work around. One bad transaction in a wallet's history currently aborts that entire signal fetch. I'll factor the resilience fix into a shared helper since it's now needed in 4 call site…
+- `run` grep -n "^export\|^import\|^class" src/rpc.ts | head -30
+- `read` rug-radar/src/rpc.ts
+- `edit` rug-radar/src/rpc.ts
+- `think` Now update `discovery.ts` to use the shared helper instead of its own inline try/catch:
+- `read` rug-radar/src/discovery.ts
+- `edit` rug-radar/src/discovery.ts
+- `edit` rug-radar/src/discovery.ts
+- `edit` rug-radar/src/data/deployerHistory.ts
+- `edit` rug-radar/src/data/deployerHistory.ts
+- `think` Now `bundledBuys.ts` (two call sites):
+- `edit` rug-radar/src/data/bundledBuys.ts
+- `edit` rug-radar/src/data/bundledBuys.ts
+- `edit` rug-radar/src/data/bundledBuys.ts
+- `think` Now let's add a test for `safeGetTransaction` and run the full suite.
+- `run` npm run typecheck 2>&1 | tail -40
+- `think` Clean. Let me check the existing `rpc.test.ts` style and add a test for `safeGetTransaction`.
+- `run` grep -n "^import\|^test\|RpcError" src/rpc.test.ts | tail -20
+- `read` rug-radar/src/rpc.test.ts
+- `edit` rug-radar/src/rpc.test.ts
+- `edit` rug-radar/src/rpc.test.ts
+- `run` npm run typecheck 2>&1 | tail -40 && echo "---TEST---" && npm test 2>&1 | tail -20
+- `think` 79/79 passing, typecheck clean. Now let's re-run the live smoke test to confirm the fix resolved the deployer-history failure.
+- `run` timeout 100 npx tsx tmp-smoke.ts 2>&1 | head -150
+- `run` cat tmp-smoke.ts
+- `think` Live pipeline confirmed working end-to-end, and the resilience fix prevents crashes on malformed transactions. Now let's clean up the scratch smoke-test file.
+- `run` git rm -q --cached tmp-smoke.ts 2>/dev/null; rm -f tmp-smoke.ts; ls

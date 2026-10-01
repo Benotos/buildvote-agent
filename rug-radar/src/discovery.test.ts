@@ -26,11 +26,9 @@ const CREATE_ACCOUNTS = [
 
 function fakeRpc(bySignature: Record<string, ParsedTransaction | null>, signatures: SignatureInfo[]) {
   return {
-    async getSignaturesForAddress(address: string, limit: number, until?: string) {
+    async getSignaturesForAddress(address: string, limit: number) {
       assert.equal(address, PUMP_FUN_PROGRAM_ID);
-      if (!until) return signatures.slice(0, limit);
-      const cutoff = signatures.findIndex((s) => s.signature === until);
-      return cutoff === -1 ? signatures.slice(0, limit) : signatures.slice(0, cutoff);
+      return signatures.slice(0, limit);
     },
     async getTransaction(signature: string) {
       return bySignature[signature] ?? null;
@@ -55,7 +53,7 @@ function createTx(): ParsedTransaction {
   };
 }
 
-test("first poll (untilSignature null) seeds the cursor without reporting launches", async () => {
+test("first poll (sinceBlockTime null) seeds the watermark without reporting launches", async () => {
   const signatures: SignatureInfo[] = [
     { signature: "sigNewest", slot: 3, err: null, memo: null, blockTime: 1700000200 },
   ];
@@ -63,7 +61,7 @@ test("first poll (untilSignature null) seeds the cursor without reporting launch
 
   const result = await findNewLaunches(rpc, null);
   assert.deepEqual(result.launches, []);
-  assert.equal(result.newestSignature, "sigNewest");
+  assert.equal(result.newestBlockTime, 1700000200);
 });
 
 test("finds a create instruction among newer signatures and returns oldest-first", async () => {
@@ -73,13 +71,24 @@ test("finds a create instruction among newer signatures and returns oldest-first
   ];
   const rpc = fakeRpc({ sigCreate: createTx(), sigNewer: null }, signatures);
 
-  const result = await findNewLaunches(rpc, "sigOld");
+  const result = await findNewLaunches(rpc, 1700000000);
   assert.equal(result.launches.length, 1);
   assert.equal(result.launches[0].mint, "Mint1111111111111111111111111111111111111");
   assert.equal(result.launches[0].deployer, "Deployer111111111111111111111111111111111");
   assert.equal(result.launches[0].bondingCurve, "BondingCurve11111111111111111111111111111");
   assert.equal(result.launches[0].createdAt, 1700000100);
-  assert.equal(result.newestSignature, "sigNewer");
+  assert.equal(result.newestBlockTime, 1700000200);
+});
+
+test("ignores signatures at or before the watermark", async () => {
+  const signatures: SignatureInfo[] = [
+    { signature: "sigCreate", slot: 1, err: null, memo: null, blockTime: 1700000100 },
+  ];
+  const rpc = fakeRpc({ sigCreate: createTx() }, signatures);
+
+  const result = await findNewLaunches(rpc, 1700000100);
+  assert.deepEqual(result.launches, []);
+  assert.equal(result.newestBlockTime, 1700000100);
 });
 
 test("skips failed transactions and non-create instructions", async () => {
@@ -98,9 +107,9 @@ test("skips failed transactions and non-create instructions", async () => {
   };
   const rpc = fakeRpc({ sigUnrelated: unrelatedTx }, signatures);
 
-  const result = await findNewLaunches(rpc, "sigOld");
+  const result = await findNewLaunches(rpc, 1700000000);
   assert.deepEqual(result.launches, []);
-  assert.equal(result.newestSignature, "sigFailed");
+  assert.equal(result.newestBlockTime, 1700000200);
 });
 
 test("skips a signature whose getTransaction call throws, instead of failing the whole poll", async () => {
@@ -114,15 +123,15 @@ test("skips a signature whose getTransaction call throws, instead of failing the
     return signature === "sigCreate" ? createTx() : null;
   };
 
-  const result = await findNewLaunches(rpc, "sigOld");
+  const result = await findNewLaunches(rpc, 1700000000);
   assert.equal(result.launches.length, 1);
   assert.equal(result.launches[0].mint, "Mint1111111111111111111111111111111111111");
-  assert.equal(result.newestSignature, "sigCreate");
+  assert.equal(result.newestBlockTime, 1700000200);
 });
 
-test("returns the prior cursor unchanged when there are no newer signatures", async () => {
+test("returns the prior watermark unchanged when there are no signatures at all", async () => {
   const rpc = fakeRpc({}, []);
-  const result = await findNewLaunches(rpc, "sigOld");
+  const result = await findNewLaunches(rpc, 1700000000);
   assert.deepEqual(result.launches, []);
-  assert.equal(result.newestSignature, "sigOld");
+  assert.equal(result.newestBlockTime, 1700000000);
 });

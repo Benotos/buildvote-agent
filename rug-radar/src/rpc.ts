@@ -167,3 +167,21 @@ export class SolanaRpcClient {
     ]);
   }
 }
+
+// The public RPC cluster is multiple nodes behind a load balancer: a
+// signature returned by one node's getSignaturesForAddress can briefly 404 on
+// getTransaction against another, and some historical transactions use a
+// version this client doesn't request support for. Callers that scan many
+// signatures (discovery, deployer history, bundled buys) should skip a
+// failure like this rather than aborting the whole scan over one transaction.
+export async function safeGetTransaction(
+  rpc: Pick<SolanaRpcClient, "getTransaction">,
+  signature: string,
+): Promise<ParsedTransaction | null> {
+  try {
+    return await rpc.getTransaction(signature);
+  } catch (err) {
+    console.error(`getTransaction failed for ${signature}:`, err instanceof Error ? err.message : err);
+    return null;
+  }
+}

@@ -62,12 +62,8 @@ function fakeRpc(programSignatures: SignatureInfo[]) {
         rentEpoch: 0,
       };
     },
-    async getSignaturesForAddress(address: string, limit: number, until?: string) {
-      if (address === PUMP_FUN_PROGRAM_ID) {
-        if (!until) return programSignatures.slice(0, limit);
-        const cutoff = programSignatures.findIndex((s) => s.signature === until);
-        return cutoff === -1 ? programSignatures.slice(0, limit) : programSignatures.slice(0, cutoff);
-      }
+    async getSignaturesForAddress(address: string, limit: number) {
+      if (address === PUMP_FUN_PROGRAM_ID) return programSignatures.slice(0, limit);
       return [];
     },
     async getTransaction(signature: string) {
@@ -76,16 +72,16 @@ function fakeRpc(programSignatures: SignatureInfo[]) {
   };
 }
 
-test("first poll seeds the cursor and scores nothing", async () => {
+test("first poll seeds the watermark and scores nothing", async () => {
   const signatures: SignatureInfo[] = [
     { signature: "sigNewest", slot: 1, err: null, memo: null, blockTime: 1700000000 },
   ];
   const feed = new LiveFeed();
-  const state = { cursor: null };
+  const state = { sinceBlockTime: null };
 
   await pollOnce(fakeRpc(signatures), feed, state);
 
-  assert.equal(state.cursor, "sigNewest");
+  assert.equal(state.sinceBlockTime, 1700000000);
   assert.deepEqual(feed.list(), []);
 });
 
@@ -94,11 +90,11 @@ test("a later poll scores newly discovered launches into the feed", async () => 
     { signature: "sigCreate", slot: 2, err: null, memo: null, blockTime: 1700000100 },
   ];
   const feed = new LiveFeed();
-  const state = { cursor: "sigOld" };
+  const state = { sinceBlockTime: 1700000000 };
 
   await pollOnce(fakeRpc(signatures), feed, state);
 
-  assert.equal(state.cursor, "sigCreate");
+  assert.equal(state.sinceBlockTime, 1700000100);
   assert.equal(feed.list().length, 1);
   assert.equal(feed.list()[0].mint, MINT);
 });
