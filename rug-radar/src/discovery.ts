@@ -74,16 +74,30 @@ export async function findNewLaunches(
   for (const sig of [...signatures].reverse()) {
     if (sig.err || sig.blockTime === null || sig.blockTime <= sinceBlockTime) continue;
 
-    const tx = await safeGetTransaction(rpc, sig.signature);
-    if (!tx) continue;
-
-    const created = findCreateInstruction(tx);
-    if (!created) continue;
-
-    launches.push({ ...created, createdAt: sig.blockTime, signature: sig.signature });
+    const launch = await resolveLaunchFromSignature(rpc, sig.signature);
+    if (launch) launches.push(launch);
   }
 
   return { launches, newestBlockTime };
+}
+
+type SignatureFetcher = Pick<SolanaRpcClient, "getTransaction">;
+
+// Fetches one transaction and, if it contains a pump.fun create/create_v2
+// instruction, decodes it into a DiscoveredLaunch. Shared by the polling
+// path above and wsDiscovery.ts's real-time path — both end up with just a
+// signature and need the same decode.
+export async function resolveLaunchFromSignature(
+  rpc: SignatureFetcher,
+  signature: string,
+): Promise<DiscoveredLaunch | null> {
+  const tx = await safeGetTransaction(rpc, signature);
+  if (!tx || tx.blockTime === null) return null;
+
+  const created = findCreateInstruction(tx);
+  if (!created) return null;
+
+  return { ...created, createdAt: tx.blockTime, signature };
 }
 
 function findCreateInstruction(

@@ -1,0 +1,83 @@
+# Session 11: Rug radar: live launch scoring
+
+- Started: 2026-10-01T20:20:34Z
+- Ended: 2026-10-01T20:26:35Z
+- Steps: 60
+- Model turns: 61
+- Billing: Claude subscription (API value $2.8981, not billed)
+- Outcome: step limit reached
+
+## Steps
+
+- `run` cat TASK.md 2>/dev/null; echo "---PROGRESS---"; cat PROGRESS.md 2>/dev/null; echo "---LS---"; ls -la
+- `read` PROGRESS.md
+- `run` git log --oneline -20 && echo --- && git show --stat HEAD | head -50
+- `run` echo "=== session-0009 ===" && cat logs/session-0009.md && echo "=== session-0010 ===" && cat logs/session-0010.md
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && find src -type f -name "*.ts" | sort && echo "---package.json---" && cat package.json
+- `read` rug-radar/src/discovery.ts
+- `read` rug-radar/src/rpc.ts
+- `read` rug-radar/src/poller.ts
+- `read` rug-radar/src/server.ts
+- `read` rug-radar/src/config.ts
+- `run` node --version && node -e "console.log(typeof WebSocket)"
+- `run` node --experimental-websocket -e "console.log(typeof WebSocket)" 2>&1; node -e "console.log(process.version); import('node:worker_threads')" 2>&1 | head -5
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent && cat .github/workflows/agent.yml | grep -i node -A2 -B2; echo "---queue---"; cat queue.json
+- `tool` ToolSearch
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && grep -n "PUMP_FUN_PROGRAM_ID" src/pumpfun.ts | head -3
+- `edit` rug-radar/probe-ws.mjs
+- `run` timeout 55 node --experimental-websocket probe-ws.mjs 2>&1 | head -150
+- `read` rug-radar/src/feed.ts
+- `read` rug-radar/src/pipeline.ts
+- `tool` ToolSearch
+- `tool` TaskCreate
+- `tool` TaskCreate
+- `tool` TaskCreate
+- `tool` TaskCreate
+- `tool` TaskCreate
+- `think` Now let me save the real captured log fixtures before cleaning up the probe script, then build the log parser.
+- `tool` TaskUpdate
+- `edit` rug-radar/src/wsLogParser.ts
+- `edit` rug-radar/src/wsLogParser.test.ts
+- `edit` rug-radar/src/wsLogParser.test.ts
+- `think` Now let's run these tests to confirm the parser works before moving on.
+- `run` node --import tsx --test --test-reporter spec src/wsLogParser.test.ts 2>&1 | tail -40
+- `think` Need node_modules installed (not persisted between sessions).
+- `run` npm install --no-audit --no-fund 2>&1 | tail -10
+- `run` node --import tsx --test --test-reporter spec src/wsLogParser.test.ts 2>&1 | tail -40
+- `think` All 6 pass. Now let's extract `resolveLaunchFromSignature` in discovery.ts.
+- `tool` TaskUpdate
+- `tool` TaskUpdate
+- `edit` rug-radar/src/discovery.ts
+- `run` npm run typecheck 2>&1 | tail -40
+- `think` Typecheck clean. Let's run the full test suite to check discovery.test.ts still passes.
+- `run` npm test 2>&1 | tail -30
+- `think` 87/87 passing. Now building `wsDiscovery.ts`.
+- `tool` TaskUpdate
+- `tool` TaskUpdate
+- `read` rug-radar/tsconfig.json
+- `edit` rug-radar/src/wsDiscovery.ts
+- `think` Now the test file with a fake WebSocket.
+- `run` cat src/data/liquidity.test.ts | head -30
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `run` grep -n "create\|discriminator" src/pumpfun.ts | head -30
+- `read` rug-radar/src/pumpfun.ts
+- `run` node --import tsx -e ' import("./src/base58.js").then(({ base58Encode }) => {   console.log(base58Encode(new Uint8Array([24,30,200,40,5,28,7,119]))); }); '
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `think` Now run the typecheck and tests.
+- `run` npm run typecheck 2>&1 | tail -60
+- `think` Just need to type the fakeRpc helper properly.
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `run` npm run typecheck 2>&1 | tail -60
+- `think` Clean. Now run the tests.
+- `run` node --import tsx --test --test-reporter spec src/wsDiscovery.test.ts 2>&1 | tail -80
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `run` node --import tsx --test --test-reporter spec src/wsDiscovery.test.ts 2>&1 | tail -40
+- `think` All 8 pass. Now wire into server.ts, config.ts, and add LiveFeed dedup.
+- `tool` TaskUpdate
+- `tool` TaskUpdate
+- `think` Let's add dedup to LiveFeed first.
+- `edit` rug-radar/src/feed.ts
+- `run` grep -n "LaunchScore" -A6 src/types.ts
