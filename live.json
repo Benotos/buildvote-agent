@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-01T05:48:52Z",
+  "updated_at": "2026-10-01T05:49:18Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 9,
     "started_at": "2026-10-01T05:48:26Z",
-    "turns": 7
+    "turns": 14
   },
   "round": {
     "number": null,
@@ -119,56 +119,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-09-30T22:13:52Z",
-      "kind": "think",
-      "text": "Now let's check the other data-fetch modules and the bundledBuys data module, plus the index.html, config.ts."
-    },
-    {
-      "t": "2026-09-30T22:13:53Z",
-      "kind": "read",
-      "text": "rug-radar/src/data/holderConcentration.ts"
-    },
-    {
-      "t": "2026-09-30T22:13:54Z",
-      "kind": "read",
-      "text": "rug-radar/src/data/liquidity.ts"
-    },
-    {
-      "t": "2026-09-30T22:13:56Z",
-      "kind": "read",
-      "text": "rug-radar/src/data/bundledBuys.ts"
-    },
-    {
-      "t": "2026-09-30T22:13:59Z",
-      "kind": "read",
-      "text": "rug-radar/src/config.ts"
-    },
-    {
-      "t": "2026-09-30T22:14:00Z",
-      "kind": "read",
-      "text": "rug-radar/src/knownAccounts.ts"
-    },
-    {
-      "t": "2026-09-30T22:14:02Z",
-      "kind": "read",
-      "text": "rug-radar/public/index.html"
-    },
-    {
-      "t": "2026-09-30T22:14:30Z",
-      "kind": "run",
-      "text": "for f in src/signals/deployerHistory.ts src/signals/bundledBuys.ts src/signals/holderConcentration.ts src/signals/liquidity.ts; do echo \"=== $f ===\"; grep -n \"export function\\|exp\u2026"
-    },
-    {
-      "t": "2026-09-30T22:14:33Z",
-      "kind": "read",
-      "text": "rug-radar/src/signals/deployerHistory.ts"
-    },
-    {
-      "t": "2026-09-30T22:14:36Z",
-      "kind": "read",
-      "text": "rug-radar/src/signals/bundledBuys.ts"
-    },
     {
       "t": "2026-09-30T22:14:41Z",
       "kind": "think",
@@ -518,6 +468,56 @@
       "t": "2026-10-01T05:48:51Z",
       "kind": "read",
       "text": "logs/session-0006.md"
+    },
+    {
+      "t": "2026-10-01T05:48:56Z",
+      "kind": "read",
+      "text": "logs/session-0007.md"
+    },
+    {
+      "t": "2026-10-01T05:48:57Z",
+      "kind": "think",
+      "text": "Now let me check session 8 \u2014 this is the one likely containing step 5 work not reflected in PROGRESS.md."
+    },
+    {
+      "t": "2026-10-01T05:48:57Z",
+      "kind": "read",
+      "text": "logs/session-0008.md"
+    },
+    {
+      "t": "2026-10-01T05:49:00Z",
+      "kind": "run",
+      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && (npm install --silent 2>&1 | tail -5) && npm run typecheck 2>&1 | tail -60"
+    },
+    {
+      "t": "2026-10-01T05:49:10Z",
+      "kind": "read",
+      "text": "rug-radar/src/discovery.ts"
+    },
+    {
+      "t": "2026-10-01T05:49:13Z",
+      "kind": "think",
+      "text": "Found the bug from the interrupted session: line 88 returns `newestSignature` (old field name) instead of `newestBlockTime` (the new field from the refactor). Let me check the oth\u2026"
+    },
+    {
+      "t": "2026-10-01T05:49:13Z",
+      "kind": "read",
+      "text": "rug-radar/src/poller.ts"
+    },
+    {
+      "t": "2026-10-01T05:49:14Z",
+      "kind": "think",
+      "text": "Now let me check discovery.test.ts and server.ts to fix all call sites consistently."
+    },
+    {
+      "t": "2026-10-01T05:49:14Z",
+      "kind": "read",
+      "text": "rug-radar/src/discovery.test.ts"
+    },
+    {
+      "t": "2026-10-01T05:49:18Z",
+      "kind": "run",
+      "text": "for f in src/pipeline.ts src/feed.ts src/poller.test.ts src/server.ts; do echo \"=== $f ===\"; cat \"$f\"; echo; done"
     }
   ],
   "schedule": {
