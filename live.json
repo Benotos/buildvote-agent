@@ -1,11 +1,10 @@
 {
-  "updated_at": "2026-10-01T13:14:38Z",
+  "updated_at": "2026-10-01T13:14:53Z",
   "agent": {
-    "status": "building",
-    "task": "Rug radar: live launch scoring",
+    "status": "idle",
+    "task": "Last session: Rug radar: live launch scoring",
     "session": 10,
-    "started_at": "2026-10-01T13:08:56Z",
-    "turns": 43
+    "turns": 44
   },
   "round": {
     "number": null,
@@ -124,30 +123,19 @@
       "billing": "subscription",
       "cost_usd": 0,
       "api_value_usd": 2.1961
+    },
+    {
+      "date": "2026-10-01T13:08:56Z",
+      "task": "Rug radar: live launch scoring",
+      "calls": 45,
+      "log_url": "https://github.com/builddotvote/buildvote-agent/blob/main/logs/session-0010.md",
+      "billing": "subscription",
+      "cost_usd": 0,
+      "api_value_usd": 1.901
     }
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T05:52:39Z",
-      "kind": "think",
-      "text": "Now let's add a test for `safeGetTransaction` and run the full suite."
-    },
-    {
-      "t": "2026-10-01T05:52:40Z",
-      "kind": "run",
-      "text": "npm run typecheck 2>&1 | tail -40"
-    },
-    {
-      "t": "2026-10-01T05:52:42Z",
-      "kind": "think",
-      "text": "Clean. Let me check the existing `rpc.test.ts` style and add a test for `safeGetTransaction`."
-    },
-    {
-      "t": "2026-10-01T05:52:43Z",
-      "kind": "run",
-      "text": "grep -n \"^import\\|^test\\|RpcError\" src/rpc.test.ts | tail -20"
-    },
     {
       "t": "2026-10-01T05:52:45Z",
       "kind": "read",
@@ -527,6 +515,26 @@
       "t": "2026-10-01T13:14:38Z",
       "kind": "edit",
       "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-01T13:14:39Z",
+      "kind": "think",
+      "text": "Final verification pass to make sure everything's clean before wrapping up."
+    },
+    {
+      "t": "2026-10-01T13:14:40Z",
+      "kind": "run",
+      "text": "npm run typecheck 2>&1 | tail -20 && echo \"===BUILD===\" && npm run build 2>&1 | tail -20 && echo \"===TEST===\" && npm test 2>&1 | tail -10 && echo \"===GIT STATUS===\" && cd .. && gi\u2026"
+    },
+    {
+      "t": "2026-10-01T13:14:51Z",
+      "kind": "think",
+      "text": "Clean working tree, no stray scratch files, everything typechecks, builds, and passes (81/81 tests, offline)."
+    },
+    {
+      "t": "2026-10-01T13:14:53Z",
+      "kind": "done",
+      "text": "Session 10 finished \u00b7 44 steps \u00b7 covered by Claude subscription ($1.90 API value)"
     }
   ],
   "schedule": {
