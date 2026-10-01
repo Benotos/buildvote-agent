@@ -1,11 +1,10 @@
 {
-  "updated_at": "2026-10-01T05:53:20Z",
+  "updated_at": "2026-10-01T05:53:37Z",
   "agent": {
-    "status": "building",
-    "task": "Rug radar: live launch scoring",
+    "status": "idle",
+    "task": "Last session: Rug radar: live launch scoring",
     "session": 9,
-    "started_at": "2026-10-01T05:48:26Z",
-    "turns": 58
+    "turns": 60
   },
   "round": {
     "number": null,
@@ -115,30 +114,19 @@
       "billing": "subscription",
       "cost_usd": 0,
       "api_value_usd": 2.2849
+    },
+    {
+      "date": "2026-10-01T05:48:26Z",
+      "task": "Rug radar: live launch scoring",
+      "calls": 61,
+      "log_url": "https://github.com/builddotvote/buildvote-agent/blob/main/logs/session-0009.md",
+      "billing": "subscription",
+      "cost_usd": 0,
+      "api_value_usd": 2.1961
     }
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-09-30T22:19:49Z",
-      "kind": "think",
-      "text": "The crash is from the RPC itself \u2014 `getSignaturesForAddress`'s `until` cursor errors with \"not found\" against this public multi-node cluster, contrary to docs. Rather than patchin\u2026"
-    },
-    {
-      "t": "2026-09-30T22:19:58Z",
-      "kind": "edit",
-      "text": "rug-radar/src/discovery.ts"
-    },
-    {
-      "t": "2026-09-30T22:20:00Z",
-      "kind": "done",
-      "text": "Session 8 reached its step limit, continues next session \u00b7 60 steps \u00b7 covered by Claude subscription ($2.28 API value)"
-    },
-    {
-      "t": "2026-10-01T05:48:26Z",
-      "kind": "start",
-      "text": "Session 9 started: Rug radar: live launch scoring"
-    },
     {
       "t": "2026-10-01T05:48:29Z",
       "kind": "run",
@@ -518,6 +506,26 @@
       "t": "2026-10-01T05:52:58Z",
       "kind": "run",
       "text": "timeout 100 npx tsx tmp-smoke.ts 2>&1 | head -150"
+    },
+    {
+      "t": "2026-10-01T05:53:22Z",
+      "kind": "run",
+      "text": "cat tmp-smoke.ts"
+    },
+    {
+      "t": "2026-10-01T05:53:34Z",
+      "kind": "think",
+      "text": "Live pipeline confirmed working end-to-end, and the resilience fix prevents crashes on malformed transactions. Now let's clean up the scratch smoke-test file."
+    },
+    {
+      "t": "2026-10-01T05:53:35Z",
+      "kind": "run",
+      "text": "git rm -q --cached tmp-smoke.ts 2>/dev/null; rm -f tmp-smoke.ts; ls"
+    },
+    {
+      "t": "2026-10-01T05:53:37Z",
+      "kind": "done",
+      "text": "Session 9 reached its step limit, continues next session \u00b7 60 steps \u00b7 covered by Claude subscription ($2.20 API value)"
     }
   ],
   "schedule": {
