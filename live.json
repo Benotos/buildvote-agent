@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T09:45:14Z",
+  "updated_at": "2026-10-02T09:45:41Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 13,
     "started_at": "2026-10-02T09:42:58Z",
-    "turns": 20
+    "turns": 25
   },
   "round": {
     "number": null,
@@ -155,46 +155,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T00:47:02Z",
-      "kind": "read",
-      "text": "rug-radar/src/poller.ts"
-    },
-    {
-      "t": "2026-10-02T00:47:06Z",
-      "kind": "run",
-      "text": "cat src/pipeline.ts && echo \"---probe-ws full---\" && cat probe-ws.mjs"
-    },
-    {
-      "t": "2026-10-02T00:47:14Z",
-      "kind": "run",
-      "text": "node --version && node -e \"console.log(typeof WebSocket)\" && node --experimental-websocket -e \"console.log(typeof WebSocket)\" 2>&1"
-    },
-    {
-      "t": "2026-10-02T00:47:18Z",
-      "kind": "read",
-      "text": "rug-radar/package.json"
-    },
-    {
-      "t": "2026-10-02T00:47:24Z",
-      "kind": "run",
-      "text": "NODE_OPTIONS=--experimental-websocket node --import tsx -e \"console.log(typeof WebSocket)\""
-    },
-    {
-      "t": "2026-10-02T00:47:27Z",
-      "kind": "think",
-      "text": "Good, `NODE_OPTIONS=--experimental-websocket` works with tsx. Now let's wire everything together: config, server, package.json scripts."
-    },
-    {
-      "t": "2026-10-02T00:47:28Z",
-      "kind": "edit",
-      "text": "rug-radar/package.json"
-    },
-    {
-      "t": "2026-10-02T00:47:35Z",
-      "kind": "edit",
-      "text": "rug-radar/src/config.ts"
-    },
     {
       "t": "2026-10-02T00:47:38Z",
       "kind": "run",
@@ -554,6 +514,46 @@
       "t": "2026-10-02T09:45:10Z",
       "kind": "run",
       "text": "npm run typecheck 2>&1 | tail -30 && echo \"===TEST===\" && npm test 2>&1 | tail -15 && echo \"===BUILD===\" && npm run build 2>&1 | tail -20"
+    },
+    {
+      "t": "2026-10-02T09:45:17Z",
+      "kind": "think",
+      "text": "Clean: typecheck, 96/96 tests, and build all pass. Now let's do a quick live smoke boot to confirm the server still starts and serves correctly with the split clients."
+    },
+    {
+      "t": "2026-10-02T09:45:18Z",
+      "kind": "run",
+      "text": "(npm start > /tmp/server.log 2>&1 &) ; sleep 8; echo \"---log---\"; cat /tmp/server.log; echo \"---feed---\"; curl -s -m 5 http://localhost:8787/api/feed; echo; pkill -f \"tsx src/serv\u2026"
+    },
+    {
+      "t": "2026-10-02T09:45:30Z",
+      "kind": "think",
+      "text": "Server boots cleanly with the split RPC clients, websocket watcher connects, and `/api/feed` responds correctly (exit code 144 is just from the `pkill`, not a failure)."
+    },
+    {
+      "t": "2026-10-02T09:45:31Z",
+      "kind": "run",
+      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent && git status --short"
+    },
+    {
+      "t": "2026-10-02T09:45:33Z",
+      "kind": "think",
+      "text": "Clean \u2014 only the intended file changed, no stray scratch files or stale processes. Now let me update the README's \"Known limitations\" section to reflect this and update PROGRESS.m\u2026"
+    },
+    {
+      "t": "2026-10-02T09:45:33Z",
+      "kind": "run",
+      "text": "cd rug-radar && grep -n \"Known limitations\" -A 25 README.md"
+    },
+    {
+      "t": "2026-10-02T09:45:36Z",
+      "kind": "run",
+      "text": "cd rug-radar && grep -n \"maxConcurrent\\|shared queue\\|one shared\" README.md"
+    },
+    {
+      "t": "2026-10-02T09:45:41Z",
+      "kind": "run",
+      "text": "grep -n \"maxConcurrent\\|shared queue\\|one shared\" README.md"
     }
   ],
   "schedule": {
