@@ -1,11 +1,10 @@
 {
-  "updated_at": "2026-10-02T18:06:15Z",
+  "updated_at": "2026-10-02T18:06:34Z",
   "agent": {
-    "status": "building",
-    "task": "Rug radar: live launch scoring",
+    "status": "idle",
+    "task": "Last session: Rug radar: live launch scoring",
     "session": 14,
-    "started_at": "2026-10-02T17:51:48Z",
-    "turns": 43
+    "turns": 45
   },
   "round": {
     "number": null,
@@ -160,40 +159,19 @@
       "billing": "subscription",
       "cost_usd": 0,
       "api_value_usd": 1.288
+    },
+    {
+      "date": "2026-10-02T17:51:48Z",
+      "task": "Rug radar: live launch scoring",
+      "calls": 46,
+      "log_url": "https://github.com/builddotvote/buildvote-agent/blob/main/logs/session-0014.md",
+      "billing": "subscription",
+      "cost_usd": 0,
+      "api_value_usd": 2.3689
     }
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T09:45:07Z",
-      "kind": "read",
-      "text": "rug-radar/src/server.ts"
-    },
-    {
-      "t": "2026-10-02T09:45:09Z",
-      "kind": "think",
-      "text": "Looks consistent. Now run typecheck, tests, and build."
-    },
-    {
-      "t": "2026-10-02T09:45:10Z",
-      "kind": "run",
-      "text": "npm run typecheck 2>&1 | tail -30 && echo \"===TEST===\" && npm test 2>&1 | tail -15 && echo \"===BUILD===\" && npm run build 2>&1 | tail -20"
-    },
-    {
-      "t": "2026-10-02T09:45:17Z",
-      "kind": "think",
-      "text": "Clean: typecheck, 96/96 tests, and build all pass. Now let's do a quick live smoke boot to confirm the server still starts and serves correctly with the split clients."
-    },
-    {
-      "t": "2026-10-02T09:45:18Z",
-      "kind": "run",
-      "text": "(npm start > /tmp/server.log 2>&1 &) ; sleep 8; echo \"---log---\"; cat /tmp/server.log; echo \"---feed---\"; curl -s -m 5 http://localhost:8787/api/feed; echo; pkill -f \"tsx src/serv\u2026"
-    },
-    {
-      "t": "2026-10-02T09:45:30Z",
-      "kind": "think",
-      "text": "Server boots cleanly with the split RPC clients, websocket watcher connects, and `/api/feed` responds correctly (exit code 144 is just from the `pkill`, not a failure)."
-    },
     {
       "t": "2026-10-02T09:45:31Z",
       "kind": "run",
@@ -563,6 +541,36 @@
       "t": "2026-10-02T18:06:15Z",
       "kind": "edit",
       "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-02T18:06:17Z",
+      "kind": "think",
+      "text": "Now let me clean up the scratch files and run final verification."
+    },
+    {
+      "t": "2026-10-02T18:06:18Z",
+      "kind": "run",
+      "text": "rm -f tmp-probe-lookback.ts tmp-probe-buys.ts tmp-capture.ts tmp-probe-signal.ts && npm run typecheck 2>&1 | tail -20 && echo \"===TEST===\" && npm test 2>&1 | tail -10 && echo \"===\u2026"
+    },
+    {
+      "t": "2026-10-02T18:06:26Z",
+      "kind": "think",
+      "text": "Clean \u2014 only the two intended docs files changed, no stray scratch files, typecheck/build/tests all pass (96/96)."
+    },
+    {
+      "t": "2026-10-02T18:06:26Z",
+      "kind": "run",
+      "text": "git diff --stat"
+    },
+    {
+      "t": "2026-10-02T18:06:32Z",
+      "kind": "think",
+      "text": "This session confirmed a real, significant finding via live RPC checks: a prolific pump.fun deployer wallet (creating a mint roughly every 1\u20132 seconds) still scores `0` risk (\"no \u2026"
+    },
+    {
+      "t": "2026-10-02T18:06:34Z",
+      "kind": "done",
+      "text": "Session 14 finished \u00b7 45 steps \u00b7 covered by Claude subscription ($2.37 API value)"
     }
   ],
   "schedule": {
