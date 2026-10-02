@@ -634,3 +634,50 @@ before writing here; backfilled from the step log, same approach as Sessions
   session since Session 6.
 - All five TASK.md steps remain functionally complete; what's left is
   hardening around the rate-limit ceiling, not new features.
+
+## Session 11 — 2026-10-02
+
+### Done
+- Picked up the first of the two options Session 10 left open ("separate
+  concurrency for the websocket path vs. the backstop poller" vs. "accept
+  under-reporting"): `src/server.ts` now builds two `SolanaRpcClient`s
+  (`watcherRpc`, `pollRpc`), each `maxConcurrent: 2`, instead of one shared
+  client with `maxConcurrent: 4`. Same total requests in flight against the
+  public RPC as before (4), but the websocket watcher's latency-sensitive
+  resolve call (and the scoring it triggers) no longer queues behind the
+  backstop poller's own signature scans and scoring, or vice versa. No
+  changes needed to `rpc.ts`, `wsDiscovery.ts`, or `pipeline.ts` — all three
+  already took an injected RPC client/interface, so this was purely a
+  `server.ts` wiring change.
+- Updated `rug-radar/README.md`'s data-layer section to describe the split
+  clients and why (latency-sensitive path vs. bursty backstop); left "Known
+  limitations" as-is since the rate-limit ceiling itself isn't changed by
+  this, only which local caller waits for it.
+- No test changes: `server.ts` has no dedicated test file (by design, same
+  as every prior session — it wires real RPC/websocket calls, offline tests
+  live at the `rpc.ts`/`wsDiscovery.ts`/`pipeline.ts` level instead). Verified
+  by hand: typecheck, build, and `npm test` (96/96, unchanged) stayed clean,
+  then live-booted `npm start` against public mainnet-beta — server boots,
+  logs both RPC/WS URLs, watcher connects, `/api/feed` responds — before
+  killing it and confirming `git status` showed only the intended
+  `server.ts` edit (no stray scratch files).
+
+### Works
+- `npm run typecheck`, `npm run build`, and `npm test` (96/96, offline) all
+  clean in `/rug-radar`.
+- Live-booted `npm start` once (~8s, public mainnet-beta, no keys): boots
+  cleanly, `/api/feed` responds, no crash, no leftover process or scratch
+  files afterward.
+
+### Next
+- The public RPC's rate limit itself is still the binding constraint (see
+  README's "Known limitations") — this session only improved fairness
+  between the two discovery paths sharing it, not the ceiling itself. A real
+  fix needs a paid/less-restricted RPC, out of scope for "public RPC, no
+  keys."
+- The `fetchDeployerHistoryInput`/`findFundingSource` lookback-limit caveats
+  (noted since Sessions 4-5) are still untouched — would need a real-RPC
+  sanity check against a long-history wallet to judge whether the current
+  defaults are worth adjusting, not guessed offline.
+- All five TASK.md steps remain functionally complete; remaining work is
+  further hardening, not new features.

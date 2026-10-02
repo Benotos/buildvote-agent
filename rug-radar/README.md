@@ -106,12 +106,17 @@ wires both discovery paths into the feed and serves it from `GET /api/feed`.
 score and per-signal reasons.
 
 `src/rpc.ts` retries calls with backoff on HTTP 429, caps how many requests
-are in flight at once (`maxConcurrent`, default 4 — a burst of concurrent
-calls all hitting the rate limiter together was colliding on about the same
-backoff schedule instead of draining; one shared queue across every caller
-spaces them out), and requests `maxSupportedTransactionVersion: 1`
-(mainnet-beta now rejects `0` for most current transactions) — all three
-confirmed against live traffic, not guessed.
+are in flight at once per client (`maxConcurrent`), and requests
+`maxSupportedTransactionVersion: 1` (mainnet-beta now rejects `0` for most
+current transactions) — all three confirmed against live traffic, not
+guessed. `src/server.ts` builds two `SolanaRpcClient`s, each with
+`maxConcurrent: 2`, instead of one shared client: the websocket watcher's
+resolve call is latency-sensitive (it's the primary, near-real-time
+discovery path), while the backstop poller's signature scans and scoring run
+in bursts. One shared queue meant a busy poll cycle could delay the
+watcher's resolve behind a pile of poller requests; splitting the budget
+doesn't change how many requests hit the public RPC at once (still 4 total,
+same as before) — it just stops one path from starving the other's share.
 
 ### Known limitations
 

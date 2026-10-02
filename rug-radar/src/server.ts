@@ -13,18 +13,29 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "public");
 
 const config = loadConfig();
-const rpc = new SolanaRpcClient(config.rpcUrl);
 const feed = new LiveFeed();
 const pollState: PollState = { sinceBlockTime: null };
+
+// Two separate clients, each with half the previous shared budget
+// (maxConcurrent: 2 apiece, same total of 4 in flight against the RPC as
+// before), rather than one client used by both paths. The watcher's resolve
+// call is latency-sensitive (it's the primary, near-real-time discovery
+// path); the backstop poller's signature scans and scoring can run in
+// bursts. Sharing one queue meant a busy poll cycle could delay the
+// watcher's resolve behind a pile of poller requests. Splitting the budget
+// doesn't change how many requests hit the public RPC at once — it just
+// stops one path from starving the other's share of it.
+const watcherRpc = new SolanaRpcClient(config.rpcUrl, fetch, { maxConcurrent: 2 });
+const pollRpc = new SolanaRpcClient(config.rpcUrl, fetch, { maxConcurrent: 2 });
 
 // Primary discovery is the websocket watcher (near-instant, sees every
 // create as it happens). The poller below stays on as a backstop for
 // launches created while the socket is down (startup, or a reconnect gap).
 const wsUrl = config.wsUrl ?? deriveWsUrl(config.rpcUrl);
-const watcher = new LaunchWatcher(wsUrl, rpc, {
+const watcher = new LaunchWatcher(wsUrl, watcherRpc, {
   onLaunch: (launch) => {
     if (feed.has(launch.mint)) return;
-    scoreLaunch(rpc, launch)
+    scoreLaunch(watcherRpc, launch)
       .then((score) => feed.add(score))
       .catch((err) => {
         console.error(`failed to score launch ${launch.mint}:`, err instanceof Error ? err.message : err);
@@ -41,7 +52,7 @@ const watcher = new LaunchWatcher(wsUrl, rpc, {
 const POLL_INTERVAL_MS = 15_000;
 
 function poll(): void {
-  pollOnce(rpc, feed, pollState).catch((err) => {
+  pollOnce(pollRpc, feed, pollState).catch((err) => {
     console.error("poll failed:", err instanceof Error ? err.message : err);
   });
 }
