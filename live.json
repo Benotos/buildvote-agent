@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T22:12:40Z",
+  "updated_at": "2026-10-02T22:13:07Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 15,
     "started_at": "2026-10-02T22:11:45Z",
-    "turns": 7
+    "turns": 16
   },
   "round": {
     "number": null,
@@ -173,51 +173,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T09:46:13Z",
-      "kind": "think",
-      "text": "Now let's do a final verification pass to confirm everything is clean before finishing."
-    },
-    {
-      "t": "2026-10-02T09:46:13Z",
-      "kind": "run",
-      "text": "npm run typecheck 2>&1 | tail -20 && echo \"===TEST===\" && npm test 2>&1 | tail -10 && echo \"===BUILD===\" && npm run build 2>&1 | tail -20 && echo \"===GIT STATUS===\" && cd .. && gi\u2026"
-    },
-    {
-      "t": "2026-10-02T09:46:22Z",
-      "kind": "think",
-      "text": "Everything's clean: typecheck, build, and 96/96 tests pass, and `git status` shows only the three intended files changed \u2014 no stray scratch files or node_modules/dist leakage."
-    },
-    {
-      "t": "2026-10-02T09:46:23Z",
-      "kind": "done",
-      "text": "Session 13 finished \u00b7 31 steps \u00b7 covered by Claude subscription ($1.29 API value)"
-    },
-    {
-      "t": "2026-10-02T17:51:48Z",
-      "kind": "start",
-      "text": "Session 14 started: Rug radar: live launch scoring"
-    },
-    {
-      "t": "2026-10-02T17:51:52Z",
-      "kind": "think",
-      "text": "I'll start by reading TASK.md and PROGRESS.md to see what needs to be done this session."
-    },
-    {
-      "t": "2026-10-02T17:51:53Z",
-      "kind": "run",
-      "text": "cat TASK.md 2>/dev/null; echo \"---PROGRESS---\"; cat PROGRESS.md 2>/dev/null"
-    },
-    {
-      "t": "2026-10-02T17:51:56Z",
-      "kind": "read",
-      "text": "PROGRESS.md"
-    },
-    {
-      "t": "2026-10-02T17:52:01Z",
-      "kind": "run",
-      "text": "git log --oneline -20 && echo \"---\" && ls logs/ | tail -20"
-    },
     {
       "t": "2026-10-02T17:52:05Z",
       "kind": "think",
@@ -572,6 +527,51 @@
       "t": "2026-10-02T22:12:40Z",
       "kind": "think",
       "text": "Baseline is clean: typecheck, 96/96 tests, no uncommitted changes. Let me set up a task list and look at the relevant source files before implementing the live-observed deployer i\u2026"
+    },
+    {
+      "t": "2026-10-02T22:12:41Z",
+      "kind": "tool",
+      "text": "ToolSearch"
+    },
+    {
+      "t": "2026-10-02T22:12:41Z",
+      "kind": "read",
+      "text": "rug-radar/src/pipeline.ts"
+    },
+    {
+      "t": "2026-10-02T22:12:44Z",
+      "kind": "read",
+      "text": "rug-radar/src/data/deployerHistory.ts"
+    },
+    {
+      "t": "2026-10-02T22:12:45Z",
+      "kind": "read",
+      "text": "rug-radar/src/signals/deployerHistory.ts"
+    },
+    {
+      "t": "2026-10-02T22:12:45Z",
+      "kind": "read",
+      "text": "rug-radar/src/server.ts"
+    },
+    {
+      "t": "2026-10-02T22:12:46Z",
+      "kind": "read",
+      "text": "rug-radar/src/feed.ts"
+    },
+    {
+      "t": "2026-10-02T22:13:04Z",
+      "kind": "read",
+      "text": "rug-radar/src/discovery.ts"
+    },
+    {
+      "t": "2026-10-02T22:13:05Z",
+      "kind": "read",
+      "text": "rug-radar/src/wsDiscovery.ts"
+    },
+    {
+      "t": "2026-10-02T22:13:05Z",
+      "kind": "read",
+      "text": "rug-radar/src/poller.ts"
     }
   ],
   "schedule": {
