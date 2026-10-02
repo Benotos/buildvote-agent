@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T22:14:55Z",
+  "updated_at": "2026-10-02T22:15:23Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 15,
     "started_at": "2026-10-02T22:11:45Z",
-    "turns": 27
+    "turns": 32
   },
   "round": {
     "number": null,
@@ -173,41 +173,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T17:53:50Z",
-      "kind": "run",
-      "text": "timeout 180 node --import tsx tmp-probe-lookback.ts 2>&1 | tail -100"
-    },
-    {
-      "t": "2026-10-02T17:54:31Z",
-      "kind": "edit",
-      "text": "rug-radar/tmp-probe-lookback.ts"
-    },
-    {
-      "t": "2026-10-02T17:54:33Z",
-      "kind": "run",
-      "text": "timeout 280 node --import tsx tmp-probe-lookback.ts 2>&1 | tail -150"
-    },
-    {
-      "t": "2026-10-02T17:56:38Z",
-      "kind": "tool",
-      "text": "ToolSearch"
-    },
-    {
-      "t": "2026-10-02T17:56:40Z",
-      "kind": "think",
-      "text": "I'll wait for this background probe to finish rather than poll \u2014 it'll notify me when done."
-    },
-    {
-      "t": "2026-10-02T17:56:41Z",
-      "kind": "tool",
-      "text": "TaskOutput"
-    },
-    {
-      "t": "2026-10-02T17:56:55Z",
-      "kind": "think",
-      "text": "400 signatures found zero creates \u2014 confirms the documented firehose problem is severe. Let me instead use the websocket watcher (which listens for creates in real time rather tha\u2026"
-    },
     {
       "t": "2026-10-02T17:56:56Z",
       "kind": "read",
@@ -572,6 +537,41 @@
       "t": "2026-10-02T22:14:55Z",
       "kind": "think",
       "text": "Now wire a shared `DeployerIndex` into `server.ts`:"
+    },
+    {
+      "t": "2026-10-02T22:14:59Z",
+      "kind": "edit",
+      "text": "rug-radar/src/server.ts"
+    },
+    {
+      "t": "2026-10-02T22:15:02Z",
+      "kind": "edit",
+      "text": "rug-radar/src/server.ts"
+    },
+    {
+      "t": "2026-10-02T22:15:05Z",
+      "kind": "edit",
+      "text": "rug-radar/src/server.ts"
+    },
+    {
+      "t": "2026-10-02T22:15:08Z",
+      "kind": "think",
+      "text": "Now let's add tests for the `observedPriorLaunches` merge path in `data/deployerHistory.test.ts` and a pipeline-level test:"
+    },
+    {
+      "t": "2026-10-02T22:15:17Z",
+      "kind": "edit",
+      "text": "rug-radar/src/data/deployerHistory.test.ts"
+    },
+    {
+      "t": "2026-10-02T22:15:21Z",
+      "kind": "think",
+      "text": "Now a pipeline-level test confirming the `deployerIndex` wiring works end-to-end:"
+    },
+    {
+      "t": "2026-10-02T22:15:23Z",
+      "kind": "edit",
+      "text": "rug-radar/src/pipeline.test.ts"
     }
   ],
   "schedule": {
