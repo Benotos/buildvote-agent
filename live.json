@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T00:47:20Z",
+  "updated_at": "2026-10-02T00:47:51Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 12,
     "started_at": "2026-10-02T00:46:00Z",
-    "turns": 22
+    "turns": 29
   },
   "round": {
     "number": null,
@@ -146,51 +146,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T20:22:45Z",
-      "kind": "read",
-      "text": "rug-radar/src/pipeline.ts"
-    },
-    {
-      "t": "2026-10-01T20:22:54Z",
-      "kind": "tool",
-      "text": "ToolSearch"
-    },
-    {
-      "t": "2026-10-01T20:22:57Z",
-      "kind": "tool",
-      "text": "TaskCreate"
-    },
-    {
-      "t": "2026-10-01T20:22:59Z",
-      "kind": "tool",
-      "text": "TaskCreate"
-    },
-    {
-      "t": "2026-10-01T20:23:01Z",
-      "kind": "tool",
-      "text": "TaskCreate"
-    },
-    {
-      "t": "2026-10-01T20:23:03Z",
-      "kind": "tool",
-      "text": "TaskCreate"
-    },
-    {
-      "t": "2026-10-01T20:23:05Z",
-      "kind": "tool",
-      "text": "TaskCreate"
-    },
-    {
-      "t": "2026-10-01T20:23:06Z",
-      "kind": "think",
-      "text": "Now let me save the real captured log fixtures before cleaning up the probe script, then build the log parser."
-    },
-    {
-      "t": "2026-10-01T20:23:06Z",
-      "kind": "tool",
-      "text": "TaskUpdate"
-    },
     {
       "t": "2026-10-01T20:23:14Z",
       "kind": "edit",
@@ -545,6 +500,51 @@
       "t": "2026-10-02T00:47:18Z",
       "kind": "read",
       "text": "rug-radar/package.json"
+    },
+    {
+      "t": "2026-10-02T00:47:24Z",
+      "kind": "run",
+      "text": "NODE_OPTIONS=--experimental-websocket node --import tsx -e \"console.log(typeof WebSocket)\""
+    },
+    {
+      "t": "2026-10-02T00:47:27Z",
+      "kind": "think",
+      "text": "Good, `NODE_OPTIONS=--experimental-websocket` works with tsx. Now let's wire everything together: config, server, package.json scripts."
+    },
+    {
+      "t": "2026-10-02T00:47:28Z",
+      "kind": "edit",
+      "text": "rug-radar/package.json"
+    },
+    {
+      "t": "2026-10-02T00:47:35Z",
+      "kind": "edit",
+      "text": "rug-radar/src/config.ts"
+    },
+    {
+      "t": "2026-10-02T00:47:38Z",
+      "kind": "run",
+      "text": "cat src/config.test.ts"
+    },
+    {
+      "t": "2026-10-02T00:47:43Z",
+      "kind": "edit",
+      "text": "rug-radar/src/config.test.ts"
+    },
+    {
+      "t": "2026-10-02T00:47:45Z",
+      "kind": "think",
+      "text": "Now let's update `.env.example` and wire `LaunchWatcher` into `server.ts`:"
+    },
+    {
+      "t": "2026-10-02T00:47:46Z",
+      "kind": "read",
+      "text": "rug-radar/.env.example"
+    },
+    {
+      "t": "2026-10-02T00:47:51Z",
+      "kind": "edit",
+      "text": "rug-radar/.env.example"
     }
   ],
   "schedule": {
