@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T17:54:14Z",
+  "updated_at": "2026-10-02T17:56:33Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 14,
     "started_at": "2026-10-02T17:51:48Z",
-    "turns": 18
+    "turns": 20
   },
   "round": {
     "number": null,
@@ -164,16 +164,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T00:52:06Z",
-      "kind": "think",
-      "text": "Now let's update the README's \"Live feed\" and \"Known limitations\" sections to reflect the new websocket-primary discovery and concurrency fix."
-    },
-    {
-      "t": "2026-10-02T00:52:10Z",
-      "kind": "edit",
-      "text": "rug-radar/README.md"
-    },
     {
       "t": "2026-10-02T00:52:30Z",
       "kind": "edit",
@@ -563,6 +553,16 @@
       "t": "2026-10-02T17:53:50Z",
       "kind": "run",
       "text": "timeout 180 node --import tsx tmp-probe-lookback.ts 2>&1 | tail -100"
+    },
+    {
+      "t": "2026-10-02T17:54:31Z",
+      "kind": "edit",
+      "text": "rug-radar/tmp-probe-lookback.ts"
+    },
+    {
+      "t": "2026-10-02T17:54:33Z",
+      "kind": "run",
+      "text": "timeout 280 node --import tsx tmp-probe-lookback.ts 2>&1 | tail -150"
     }
   ],
   "schedule": {
