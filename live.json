@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T17:53:42Z",
+  "updated_at": "2026-10-02T17:54:14Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 14,
     "started_at": "2026-10-02T17:51:48Z",
-    "turns": 16
+    "turns": 18
   },
   "round": {
     "number": null,
@@ -164,16 +164,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T00:52:01Z",
-      "kind": "run",
-      "text": "pkill -f \"tsx src/server.ts\" 2>/dev/null; rm -f /tmp/server3.log; true"
-    },
-    {
-      "t": "2026-10-02T00:52:04Z",
-      "kind": "read",
-      "text": "rug-radar/README.md"
-    },
     {
       "t": "2026-10-02T00:52:06Z",
       "kind": "think",
@@ -563,6 +553,16 @@
       "t": "2026-10-02T17:53:25Z",
       "kind": "run",
       "text": "timeout 100 node --import tsx tmp-probe-lookback.ts 2>&1 | tail -80"
+    },
+    {
+      "t": "2026-10-02T17:53:47Z",
+      "kind": "edit",
+      "text": "rug-radar/tmp-probe-lookback.ts"
+    },
+    {
+      "t": "2026-10-02T17:53:50Z",
+      "kind": "run",
+      "text": "timeout 180 node --import tsx tmp-probe-lookback.ts 2>&1 | tail -100"
     }
   ],
   "schedule": {
