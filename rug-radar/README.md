@@ -135,10 +135,30 @@ same as before) — it just stops one path from starving the other's share.
   `getSignaturesForAddress` span only ~2 seconds. This is why it's now the
   backstop rather than the primary path; the websocket watcher above doesn't
   have this problem since it's push-based, not sampled.
-- `fetchDeployerHistoryInput`'s and `findFundingSource`'s (in
-  `src/data/bundledBuys.ts`) signature-count lookback limits mean both
-  under-count a wallet with a very long history — acceptable for the common
-  case (freshly created deployer/buyer wallets) but not exhaustive.
+- **Deployer history under-counts badly for the exact wallets it most needs to
+  catch.** Confirmed live: a real deployer wallet creating a new mint roughly
+  every 1-2 seconds still showed only 0-1 "prior launches" when
+  `fetchDeployerHistoryInput`'s default 100-signature scan ran against it —
+  `scoreDeployerHistory` returned `{ score: 0, reasons: ["no prior tokens
+  found from this deployer"] }`, i.e. the lowest possible risk reading, for
+  one of the most prolific token-creation wallets seen during testing. The
+  create instructions are a small fraction of that wallet's own signature
+  history (most of its other transactions are something else), so raising
+  the scan limit helps only proportionally and multiplies `getTransaction`
+  calls (worse 429s) for uncertain gain. This is a false-negative, which is
+  the worse failure direction for a risk tool — worth a dedicated fix before
+  leaning on this signal's score of 0 as "clean." One promising direction not
+  yet attempted: the live websocket watcher already observes every create as
+  it happens — it could build its own running `deployer -> prior mints` index
+  from launches it has personally seen, instead of only reconstructing
+  history after the fact via `getSignaturesForAddress`. That doesn't help a
+  deployer's pre-existing history (cold start), but would stop under-counting
+  for repeat offenders going forward.
+- `findFundingSource` (in `src/data/bundledBuys.ts`) has the same style of
+  lookback-limit cap (default 50 signatures) for a buyer's funding source —
+  not yet live-checked against a real long-history wallet this session (ran
+  out of early-buy activity on the freshly-created mints used for the
+  deployer-history check above); still an open "worth checking" item.
 
 ## Setup
 

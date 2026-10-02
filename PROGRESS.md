@@ -681,3 +681,71 @@ before writing here; backfilled from the step log, same approach as Sessions
   defaults are worth adjusting, not guessed offline.
 - All five TASK.md steps remain functionally complete; remaining work is
   further hardening, not new features.
+
+## Session 12 — 2026-10-02
+
+### Done
+- Ran the real-RPC sanity check flagged since Session 4/11: used the
+  websocket watcher (`LaunchWatcher`) to capture real, live pump.fun creates
+  (no scanning — the earlier attempt scanning 400 of the program's own recent
+  signatures found zero creates, confirming how small a slice of the firehose
+  that is). Found a real deployer wallet
+  (`4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf`) creating a new mint roughly
+  every 1-2 seconds.
+- Ran the actual production functions (`fetchDeployerHistoryInput` +
+  `scoreDeployerHistory`, not just raw signature counts) against that live
+  deployer. Result: within the default 100-signature scan, the signal found
+  only 0-1 "prior launches" and scored it `0` ("no prior tokens found") — the
+  lowest possible risk reading for one of the most prolific create-spamming
+  wallets observed. This is a confirmed false-negative on exactly the pattern
+  the signal exists to catch, worse than the vague "under-counts a very
+  prolific wallet" caveat on record since Session 4 — most of that wallet's
+  own signature history isn't creates at all, so create density within any
+  scan window is low and raising the limit only helps proportionally while
+  multiplying `getTransaction` calls (worse 429s).
+  - Along the way, hit what looked like a crash in `scoreDeployerHistory`
+    (`Cannot read properties of undefined (reading 'length')`) — turned out
+    to be a bug in the scratch probe script itself (passed the array
+    directly instead of `{ deployer, priorLaunches }`); confirmed
+    `pipeline.ts:36` already calls it correctly. Not a real bug, but worth
+    recording so it isn't re-investigated from scratch next time.
+  - Did not get to the matching live check for `findFundingSource`
+    (bundled buys' funding-source lookback, default 50 signatures) — the
+    freshly-created mints used above hadn't accumulated enough early-buy
+    activity in the session window. Still open.
+- Updated `rug-radar/README.md`'s "Known limitations": replaced the vague
+  deployer-history/bundled-buys lookback caveat with the concrete finding
+  above, and proposed (not yet built) a direction that avoids the cold-start
+  problem differently: since the websocket watcher already observes every
+  create it discovers in real time, it could build its own running
+  `deployer -> prior mints` index from launches seen live, instead of relying
+  only on retroactively scanning `getSignaturesForAddress` after the fact.
+  That wouldn't fix a deployer's pre-existing history but would stop
+  under-counting repeat offenders going forward.
+- Deleted all scratch probe files created this session
+  (`tmp-probe-lookback.ts`, `tmp-probe-buys.ts`, `tmp-capture.ts`,
+  `tmp-probe-signal.ts`) before finishing — none were meant to be committed,
+  same habit as prior sessions' scratch smoke-test scripts.
+
+### Works
+- `npm run typecheck`, `npm run build`, and `npm test` (96/96, offline) all
+  clean in `/rug-radar` — no production code changed this session, only
+  `README.md`/`PROGRESS.md` and (deleted) scratch files.
+- Live-RPC checks performed with the real, unmodified production code
+  (`fetchDeployerHistoryInput`, `scoreDeployerHistory`, `LaunchWatcher`)
+  against public mainnet-beta, not just raw RPC probing — see "Done" above.
+
+### Next
+- The deployer-history false-negative on prolific wallets (above) is the
+  most concrete, now-proven issue on record. Worth a real fix in a focused
+  session: either the live-observed-index idea sketched above, or research
+  into why create density is so low in this wallet's own signature history
+  (e.g. does pump.fun's `create` bundle with several other instructions'
+  worth of signatures per launch, or is this wallet doing unrelated
+  high-frequency activity too) before picking an approach.
+- `findFundingSource`'s lookback-limit still hasn't had its live check —
+  needs a mint with real early-buy activity (not one captured seconds before
+  the check) to find a buyer wallet old enough to test against.
+- All five TASK.md steps remain functionally complete; the rate-limit
+  ceiling and the deployer-history false-negative above are the two most
+  concrete hardening items on record.
