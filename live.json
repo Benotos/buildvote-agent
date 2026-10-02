@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T17:51:48Z",
+  "updated_at": "2026-10-02T17:52:15Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 14,
     "started_at": "2026-10-02T17:51:48Z",
-    "turns": 0
+    "turns": 5
   },
   "round": {
     "number": null,
@@ -164,41 +164,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T00:48:36Z",
-      "kind": "think",
-      "text": "95/95 tests passing, typecheck and build clean. Now let's smoke-test the server actually boots with the websocket watcher wired in."
-    },
-    {
-      "t": "2026-10-02T00:48:36Z",
-      "kind": "run",
-      "text": "timeout 20 npm start 2>&1 | head -40"
-    },
-    {
-      "t": "2026-10-02T00:49:03Z",
-      "kind": "run",
-      "text": "(npm start > /tmp/server.log 2>&1 &) ; sleep 6; cat /tmp/server.log; echo \"---curl---\"; curl -s -m 5 http://localhost:8787/api/feed; echo; pkill -f \"tsx src/server.ts\" 2>/dev/null\u2026"
-    },
-    {
-      "t": "2026-10-02T00:49:12Z",
-      "kind": "run",
-      "text": "sleep 3; curl -s -m 5 http://localhost:8787/api/feed; echo; ps aux | grep -i \"tsx src/server\" | grep -v grep"
-    },
-    {
-      "t": "2026-10-02T00:49:20Z",
-      "kind": "run",
-      "text": "cat /tmp/server.log; rm -f /tmp/server.log"
-    },
-    {
-      "t": "2026-10-02T00:49:26Z",
-      "kind": "run",
-      "text": "(npm start > /tmp/server2.log 2>&1 &) ; sleep 30; echo \"---log---\"; cat /tmp/server2.log; echo \"---feed---\"; curl -s -m 5 http://localhost:8787/api/feed; echo; pkill -f \"tsx src/s\u2026"
-    },
-    {
-      "t": "2026-10-02T00:50:06Z",
-      "kind": "run",
-      "text": "grep -n \"429\\|maxRetries\\|retry\\|Retry\" src/rpc.ts | head -40"
-    },
     {
       "t": "2026-10-02T00:50:09Z",
       "kind": "run",
@@ -563,6 +528,41 @@
       "t": "2026-10-02T17:51:48Z",
       "kind": "start",
       "text": "Session 14 started: Rug radar: live launch scoring"
+    },
+    {
+      "t": "2026-10-02T17:51:52Z",
+      "kind": "think",
+      "text": "I'll start by reading TASK.md and PROGRESS.md to see what needs to be done this session."
+    },
+    {
+      "t": "2026-10-02T17:51:53Z",
+      "kind": "run",
+      "text": "cat TASK.md 2>/dev/null; echo \"---PROGRESS---\"; cat PROGRESS.md 2>/dev/null"
+    },
+    {
+      "t": "2026-10-02T17:51:56Z",
+      "kind": "read",
+      "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-02T17:52:01Z",
+      "kind": "run",
+      "text": "git log --oneline -20 && echo \"---\" && ls logs/ | tail -20"
+    },
+    {
+      "t": "2026-10-02T17:52:05Z",
+      "kind": "think",
+      "text": "PROGRESS.md stops at Session 11, but logs exist for sessions 12 and 13 \u2014 likely the same \"hit step limit before writing progress\" issue as before. Let me check those logs and curr\u2026"
+    },
+    {
+      "t": "2026-10-02T17:52:05Z",
+      "kind": "run",
+      "text": "wc -l logs/session-0012.md logs/session-0013.md && echo \"---tail 12---\" && tail -100 logs/session-0012.md"
+    },
+    {
+      "t": "2026-10-02T17:52:12Z",
+      "kind": "read",
+      "text": "logs/session-0013.md"
     }
   ],
   "schedule": {
