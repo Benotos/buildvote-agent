@@ -1,11 +1,10 @@
 {
-  "updated_at": "2026-10-02T00:53:22Z",
+  "updated_at": "2026-10-02T00:53:45Z",
   "agent": {
-    "status": "building",
-    "task": "Rug radar: live launch scoring",
+    "status": "idle",
+    "task": "Last session: Rug radar: live launch scoring",
     "session": 12,
-    "started_at": "2026-10-02T00:46:00Z",
-    "turns": 56
+    "turns": 58
   },
   "round": {
     "number": null,
@@ -142,40 +141,19 @@
       "billing": "subscription",
       "cost_usd": 0,
       "api_value_usd": 2.8981
+    },
+    {
+      "date": "2026-10-02T00:46:00Z",
+      "task": "Rug radar: live launch scoring",
+      "calls": 59,
+      "log_url": "https://github.com/builddotvote/buildvote-agent/blob/main/logs/session-0012.md",
+      "billing": "subscription",
+      "cost_usd": 0,
+      "api_value_usd": 2.2826
     }
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T20:26:13Z",
-      "kind": "run",
-      "text": "node --import tsx --test --test-reporter spec src/wsDiscovery.test.ts 2>&1 | tail -80"
-    },
-    {
-      "t": "2026-10-01T20:26:18Z",
-      "kind": "edit",
-      "text": "rug-radar/src/wsDiscovery.test.ts"
-    },
-    {
-      "t": "2026-10-01T20:26:20Z",
-      "kind": "edit",
-      "text": "rug-radar/src/wsDiscovery.test.ts"
-    },
-    {
-      "t": "2026-10-01T20:26:22Z",
-      "kind": "edit",
-      "text": "rug-radar/src/wsDiscovery.test.ts"
-    },
-    {
-      "t": "2026-10-01T20:26:24Z",
-      "kind": "run",
-      "text": "node --import tsx --test --test-reporter spec src/wsDiscovery.test.ts 2>&1 | tail -40"
-    },
-    {
-      "t": "2026-10-01T20:26:25Z",
-      "kind": "think",
-      "text": "All 8 pass. Now wire into server.ts, config.ts, and add LiveFeed dedup."
-    },
     {
       "t": "2026-10-01T20:26:26Z",
       "kind": "tool",
@@ -545,6 +523,36 @@
       "t": "2026-10-02T00:53:22Z",
       "kind": "edit",
       "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-02T00:53:26Z",
+      "kind": "think",
+      "text": "Now let's do a final full verification pass \u2014 typecheck, test, build, and git status to make sure everything is clean."
+    },
+    {
+      "t": "2026-10-02T00:53:27Z",
+      "kind": "run",
+      "text": "npm run typecheck 2>&1 | tail -20 && echo \"===TEST===\" && npm test 2>&1 | tail -10 && echo \"===BUILD===\" && npm run build 2>&1 | tail -20 && echo \"===GIT STATUS===\" && cd /home/ru\u2026"
+    },
+    {
+      "t": "2026-10-02T00:53:35Z",
+      "kind": "think",
+      "text": "Clean: typecheck, build, and 96/96 tests pass, working tree matches expected changes. Let me verify no `node_modules` or `dist` got accidentally staged."
+    },
+    {
+      "t": "2026-10-02T00:53:36Z",
+      "kind": "run",
+      "text": "git status --short | grep -i \"node_modules\\|dist/\" ; echo \"(none means clean)\""
+    },
+    {
+      "t": "2026-10-02T00:53:43Z",
+      "kind": "think",
+      "text": "Good, nothing stray. Session's work is done and PROGRESS.md is updated."
+    },
+    {
+      "t": "2026-10-02T00:53:45Z",
+      "kind": "done",
+      "text": "Session 12 finished \u00b7 58 steps \u00b7 covered by Claude subscription ($2.28 API value)"
     }
   ],
   "schedule": {
