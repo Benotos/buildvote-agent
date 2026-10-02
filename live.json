@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T00:51:44Z",
+  "updated_at": "2026-10-02T00:52:30Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 12,
     "started_at": "2026-10-02T00:46:00Z",
-    "turns": 51
+    "turns": 55
   },
   "round": {
     "number": null,
@@ -146,31 +146,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T20:26:02Z",
-      "kind": "run",
-      "text": "npm run typecheck 2>&1 | tail -60"
-    },
-    {
-      "t": "2026-10-01T20:26:04Z",
-      "kind": "think",
-      "text": "Just need to type the fakeRpc helper properly."
-    },
-    {
-      "t": "2026-10-01T20:26:06Z",
-      "kind": "edit",
-      "text": "rug-radar/src/wsDiscovery.test.ts"
-    },
-    {
-      "t": "2026-10-01T20:26:09Z",
-      "kind": "edit",
-      "text": "rug-radar/src/wsDiscovery.test.ts"
-    },
-    {
-      "t": "2026-10-01T20:26:11Z",
-      "kind": "run",
-      "text": "npm run typecheck 2>&1 | tail -60"
-    },
     {
       "t": "2026-10-01T20:26:13Z",
       "kind": "think",
@@ -545,6 +520,31 @@
       "t": "2026-10-02T00:51:14Z",
       "kind": "run",
       "text": "(npm start > /tmp/server3.log 2>&1 &) ; sleep 30; echo \"---log---\"; cat /tmp/server3.log; echo \"---feed---\"; curl -s -m 5 http://localhost:8787/api/feed; echo; pkill -f \"tsx src/s\u2026"
+    },
+    {
+      "t": "2026-10-02T00:52:01Z",
+      "kind": "run",
+      "text": "pkill -f \"tsx src/server.ts\" 2>/dev/null; rm -f /tmp/server3.log; true"
+    },
+    {
+      "t": "2026-10-02T00:52:04Z",
+      "kind": "read",
+      "text": "rug-radar/README.md"
+    },
+    {
+      "t": "2026-10-02T00:52:06Z",
+      "kind": "think",
+      "text": "Now let's update the README's \"Live feed\" and \"Known limitations\" sections to reflect the new websocket-primary discovery and concurrency fix."
+    },
+    {
+      "t": "2026-10-02T00:52:10Z",
+      "kind": "edit",
+      "text": "rug-radar/README.md"
+    },
+    {
+      "t": "2026-10-02T00:52:30Z",
+      "kind": "edit",
+      "text": "rug-radar/README.md"
     }
   ],
   "schedule": {
