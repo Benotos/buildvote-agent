@@ -1,0 +1,100 @@
+# Session 15: Rug radar: live launch scoring
+
+- Started: 2026-10-02T22:11:45Z
+- Ended: 2026-10-02T22:23:54Z
+- Steps: 58
+- Model turns: 59
+- Billing: Claude subscription (API value $2.8640, not billed)
+- Outcome: ok
+
+## Summary
+
+Everything is clean: typecheck, build, and 107/107 tests pass, and `git status` shows only the intended files — no stray scratch files.  This session built the fix for the deployer-history false-negative flagged as the top open item in Session 12: a `DeployerIndex` that both discovery paths (websocket watcher and backstop poller) feed into live, supplementing the retroactive signature scan that badly under-counts prolific deployers. I verified it against real mainnet-beta data — the same prolific deployer wallet from Session 12 went from scoring `40` to `90` ("4 of 4 prior tokens never migrat…
+
+## Steps
+
+- `think` I'll start by reading TASK.md and PROGRESS.md to understand the current task and prior progress.
+- `run` cat TASK.md 2>/dev/null; echo "---PROGRESS---"; cat PROGRESS.md 2>/dev/null
+- `read` /home/runner/.claude/projects/-home-runner-work-buildvote-agent-buildvote-agent/19a55bd0-4a93-46e7-ba2a-3e14c80a54ec/tool-results/byci16913.txt
+- `run` git log --oneline -20 && echo "---" && ls rug-radar/logs/ 2>/dev/null | tail -10 && echo "---tail progress---" && tail -5 PROGRESS.md 2>/dev/null; find . -maxdepth 2 -iname "PROGRESS.md"
+- `run` git show --stat HEAD | head -50 && echo "---find logs---" && find . -iname "logs" -maxdepth 3 && find . -iname "session-*.md" | sort
+- `think` This is a fresh checkout with only one commit so far, but `logs/session-0013.md` and `logs/session-0014.md` exist and aren't yet reflected in PROGRESS.md (matches the pattern noted in earlier sessions — runs that hit the step limit right after finishing don't get to update PROGRESS.md). Let me read those logs to reconstruct what happened before continuing.
+- `read` logs/session-0013.md
+- `read` logs/session-0014.md
+- `think` Good news — PROGRESS.md is actually already up to date; logs 0013/0014 match what's documented as "Session 11/12" there (the numbering just doesn't align 1:1, but no reconstruction is needed). Let me verify the baseline and look at the code to plan this session's work on the deployer-history false-negative, which was the top open item.
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && npm install --no-audit --no-fund 2>&1 | tail -5 && echo "===TYPECHECK===" && npm run typecheck 2>&1 | tail -20 && echo "===TEST===" && npm test 2>&1 | tail -15 && echo "===STATUS===" && cd .. && git status --short
+- `think` Baseline is clean: typecheck, 96/96 tests, no uncommitted changes. Let me set up a task list and look at the relevant source files before implementing the live-observed deployer index.
+- `tool` ToolSearch
+- `read` rug-radar/src/pipeline.ts
+- `read` rug-radar/src/data/deployerHistory.ts
+- `read` rug-radar/src/signals/deployerHistory.ts
+- `read` rug-radar/src/server.ts
+- `read` rug-radar/src/feed.ts
+- `read` rug-radar/src/discovery.ts
+- `read` rug-radar/src/wsDiscovery.ts
+- `read` rug-radar/src/poller.ts
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && ls src/*.test.ts src/data/*.test.ts src/signals/*.test.ts 2>/dev/null
+- `think` Good, there are existing `pipeline.test.ts` and `poller.test.ts`. Let me check those plus `data/deployerHistory.test.ts` to match existing test patterns before writing the new module.
+- `read` rug-radar/src/pipeline.test.ts
+- `read` rug-radar/src/poller.test.ts
+- `read` rug-radar/src/data/deployerHistory.test.ts
+- `think` Now I have a clear picture. I'll build a `DeployerIndex` that the live discovery paths feed into, so the deployer-history signal isn't limited to a retroactive signature scan that badly under-counts prolific deployers.
+- `edit` rug-radar/src/deployerIndex.ts
+- `think` Now the test file for it:
+- `edit` rug-radar/src/deployerIndex.test.ts
+- `think` Now update `fetchDeployerHistoryInput` to accept observed prior launches:
+- `edit` rug-radar/src/data/deployerHistory.ts
+- `edit` rug-radar/src/data/deployerHistory.ts
+- `think` Now wire it into `pipeline.ts`:
+- `edit` rug-radar/src/pipeline.ts
+- `edit` rug-radar/src/pipeline.ts
+- `think` Now update `poller.ts` to thread the `deployerIndex` through:
+- `edit` rug-radar/src/poller.ts
+- `think` Now wire a shared `DeployerIndex` into `server.ts`:
+- `edit` rug-radar/src/server.ts
+- `edit` rug-radar/src/server.ts
+- `edit` rug-radar/src/server.ts
+- `think` Now let's add tests for the `observedPriorLaunches` merge path in `data/deployerHistory.test.ts` and a pipeline-level test:
+- `edit` rug-radar/src/data/deployerHistory.test.ts
+- `think` Now a pipeline-level test confirming the `deployerIndex` wiring works end-to-end:
+- `edit` rug-radar/src/pipeline.test.ts
+- `edit` rug-radar/src/pipeline.test.ts
+- `run` npm run typecheck 2>&1 | tail -40
+- `think` Typecheck is clean. Now run the full test suite:
+- `run` npm test 2>&1 | tail -60
+- `think` All 107 tests pass (96 → 107, the 11 new ones). Let's also confirm the build works and do a quick live boot smoke test.
+- `run` npm run build 2>&1 | tail -20
+- `think` Build is clean. Now a quick live smoke boot to confirm the server still starts correctly with the new wiring:
+- `run` (npm start > /tmp/server.log 2>&1 &) ; sleep 8; echo "---log---"; cat /tmp/server.log; echo "---feed---"; curl -s -m 5 http://localhost:8787/api/feed; echo; pkill -f "tsx src/server.ts" 2>/dev/null; sleep 1; rm -f /tmp/server.log; true
+- `think` Server boots cleanly, websocket connects, `/api/feed` responds. Exit code 144 is just from `pkill`, not a failure. Let's confirm no stray files left behind, then update the README and PROGRESS.md.
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent && git status --short
+- `think` Clean — only the intended files. Now let's update the README's "Known limitations" section to reflect this fix:
+- `run` cd rug-radar && grep -n "Known limitations" -A 60 README.md
+- `edit` rug-radar/README.md
+- `read` rug-radar/README.md
+- `edit` rug-radar/README.md
+- `think` Now let's update the "Known limitations" entry that documented the false-negative as unfixed:
+- `edit` rug-radar/README.md
+- `think` Let's try to actually verify this live — catch a repeat deployer in real time and confirm the index catches the second launch. I'll write a temporary probe script (deleted before finishing, per established session habit).
+- `edit` rug-radar/tmp-probe-index.ts
+- `run` NODE_OPTIONS=--experimental-websocket timeout 110 node --import tsx tmp-probe-index.ts 2>&1 | tail -120
+- `run` NODE_OPTIONS=--experimental-websocket timeout 110 node --import tsx tmp-probe-index.ts > /tmp/probe-index.out 2>&1; echo "exit:$?"; wc -l /tmp/probe-index.out; cat /tmp/probe-index.out
+- `think` The full pipeline (4 signals × RPC calls per launch) is too much load to finish in the window. Let me target just the deployer-history path directly, which is what I'm actually verifying.
+- `read` rug-radar/tmp-probe-index.ts
+- `edit` rug-radar/tmp-probe-index.ts
+- `run` NODE_OPTIONS=--experimental-websocket timeout 75 node --import tsx tmp-probe-index.ts > /tmp/probe-index2.out 2>&1; echo "exit:$?"; cat /tmp/probe-index2.out
+- `run` sed -n '1,45p' tmp-probe-index.ts
+- `edit` rug-radar/tmp-probe-index.ts
+- `run` NODE_OPTIONS=--experimental-websocket timeout 75 node --import tsx tmp-probe-index.ts > /tmp/probe-index3.out 2>&1; echo "exit:$?"; cat /tmp/probe-index3.out
+- `think` Live confirmation that the fix works: on the deployer's 4th observed launch, the score jumped from `0` (false-negative) to `90` ("4 of 4 prior tokens from this deployer never migrated") — exactly the pattern the signal exists to catch, now caught via the live-observed index instead of missed by the retroactive scan. Let me clean up the scratch file and run the final verification pass.
+- `run` rm -f tmp-probe-index.ts && npm run typecheck 2>&1 | tail -20 && echo "===TEST===" && npm test 2>&1 | tail -10 && echo "===BUILD===" && npm run build 2>&1 | tail -20 && echo "===GIT STATUS===" && cd .. && git status --short
+- `think` Clean — only the intended files remain, scratch probe deleted. Now let's update the README's deployer-history limitation note to reflect this live confirmation, then update PROGRESS.md.
+- `edit` rug-radar/README.md
+- `think` Now let's add the Session entry to PROGRESS.md:
+- `edit` PROGRESS.md
+- `read` PROGRESS.md
+- `think` Now the edit should succeed:
+- `edit` PROGRESS.md
+- `think` Now final verification pass:
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && npm run typecheck 2>&1 | tail -20 && echo "===TEST===" && npm test 2>&1 | tail -10 && echo "===BUILD===" && npm run build 2>&1 | tail -20 && echo "===GIT STATUS===" && cd .. && git status --short
+- `think` Everything is clean: typecheck, build, and 107/107 tests pass, and `git status` shows only the intended files — no stray scratch files.

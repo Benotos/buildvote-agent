@@ -749,3 +749,86 @@ before writing here; backfilled from the step log, same approach as Sessions
 - All five TASK.md steps remain functionally complete; the rate-limit
   ceiling and the deployer-history false-negative above are the two most
   concrete hardening items on record.
+
+## Session 13 — 2026-10-02
+
+### Done
+- Picked up the most concrete open item from Session 12 (the deployer-history
+  false-negative on prolific wallets) and built the fix it had sketched but
+  not attempted: a live-observed deployer index.
+  - `src/deployerIndex.ts` — `DeployerIndex`: an in-memory `deployer -> mint
+    -> bondingCurve` map, built up as launches are *discovered* (not scanned
+    retroactively). Bounded by a single FIFO across all deployers (same
+    pattern as `LiveFeed`/`LaunchWatcher`'s own dedup structures) so a
+    long-running process doesn't grow this forever. `record()` is dedup-safe
+    (idempotent per mint); `getPriorLaunches(deployer, excludeMint)` returns
+    everything known for a deployer except the mint currently being scored.
+    `src/deployerIndex.test.ts` — 6 offline tests (empty lookup, record +
+    lookup, self-exclusion, dedup, cross-deployer isolation, FIFO eviction).
+  - `src/data/deployerHistory.ts` — `fetchDeployerHistoryInput()` gained an
+    `observedPriorLaunches` option: after the existing retroactive scan,
+    merges in any observed mints not already found by the scan (deduped by
+    mint against both the scan's results and the current mint), checking
+    each one's migration status the same way the scan does. 4 new tests in
+    `src/data/deployerHistory.test.ts` (merges a scan-missed mint, doesn't
+    double-count one the scan already found, excludes the current mint even
+    if wrongly passed in as "observed").
+  - `src/pipeline.ts` — `scoreLaunch()` takes an optional `deployerIndex`
+    param: records the current launch into it, then passes
+    `getPriorLaunches()`'s result into `fetchDeployerHistoryInput` as
+    `observedPriorLaunches`. Recording happens before the lookup, but
+    `getPriorLaunches`'s `excludeMint` makes the order not matter for
+    correctness. 2 new tests in `src/pipeline.test.ts` (the index catches a
+    prior launch the scan can't see; scoring a launch records it for a later
+    lookup).
+  - `src/poller.ts` — `pollOnce()` takes the same optional `deployerIndex`
+    param and threads it into `scoreLaunch`. No test changes needed (existing
+    tests call it without the new optional param).
+  - `src/server.ts` — one `DeployerIndex` shared across both discovery paths
+    (websocket watcher and backstop poller), so a launch seen by either path
+    updates the same index.
+- Live-verified the fix, not just the offline tests: wrote a throwaway probe
+  (`tmp-probe-index.ts`, deleted before finishing, same habit as prior
+  sessions' scratch scripts) that watched the real websocket feed for the
+  same prolific deployer flagged in Session 12
+  (`4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf`) and called the real
+  `fetchDeployerHistoryInput` + `scoreDeployerHistory` functions (with the
+  retroactive scan's `signatureLimit` set to 1, to isolate the index's own
+  contribution) each time it created a new mint. Confirmed live: by the
+  deployer's 4th launch observed in the process, the score rose from `40`
+  ("too few prior tokens to call it a pattern") to `90` ("4 of 4 prior tokens
+  from this deployer never migrated (100%)") — the exact false-negative
+  Session 12 found, now caught.
+- Updated `rug-radar/README.md`: the "Deployer history" signal description
+  now mentions `deployerIndex.ts`; the "Known limitations" entry for the
+  false-negative is marked "Partially fixed" with what it does/doesn't cover
+  (doesn't help a deployer's pre-existing, pre-startup history — only the
+  retroactive scan can see further back than process start) and the live
+  numbers from the check above.
+
+### Works
+- `npm run typecheck` and `npm run build` clean.
+- `npm test`: 107/107 passing (11 new), all offline (fake RPC objects, no
+  live calls in the automated suite).
+- Live-booted `npm start` once (~8s, public mainnet-beta, no keys): boots
+  cleanly, `/api/feed` responds, no crash.
+- Live-verified the actual fix (not just offline tests) against a real
+  repeat deployer via a deleted scratch probe — see "Done" above for the
+  before/after scores.
+- `git status` showed only the intended files changed after cleanup — no
+  leftover scratch probe.
+
+### Next
+- The live check above isolated the index's contribution with
+  `signatureLimit: 1`; haven't checked the realistic combined case (default
+  `signatureLimit: 100` scan + index together) against a repeat deployer,
+  though there's no reason to expect it behaves differently — the merge just
+  adds more candidates to the same dedup logic.
+- `findFundingSource`'s lookback-limit (bundled buys) still hasn't had its
+  live check — flagged since Session 4, still open, needs a mint with real
+  early-buy activity old enough to test against (same blocker noted in
+  Session 12).
+- The public RPC rate-limit ceiling (README's top "Known limitations" entry)
+  is unchanged by this session — still the main remaining hardening item
+  along with whatever the next live-RPC check surfaces.
+- All five TASK.md steps remain functionally complete.

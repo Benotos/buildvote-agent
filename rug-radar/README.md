@@ -45,6 +45,12 @@ account list).
    function) + `src/data/deployerHistory.ts` (scans the deployer's
    transaction history for past pump.fun `create`/`create_v2` instructions,
    then checks each prior mint's bonding curve for whether it migrated).
+   Supplemented by `src/deployerIndex.ts`, a shared in-memory index that both
+   discovery paths (websocket watcher and backstop poller, see `server.ts`)
+   record every launch into as they see it live; `fetchDeployerHistoryInput`
+   merges this live-observed history in alongside its own retroactive scan.
+   See "Known limitations" below for why the retroactive scan alone wasn't
+   enough, and what this does and doesn't fix.
 2. **Bundled buys** — wallets funded from one source that bought in the first
    minutes. **Built:** `src/signals/bundledBuys.ts` (pure scoring function) +
    `src/data/bundledBuys.ts` (finds early buyers of the mint from the bonding
@@ -135,25 +141,29 @@ same as before) — it just stops one path from starving the other's share.
   `getSignaturesForAddress` span only ~2 seconds. This is why it's now the
   backstop rather than the primary path; the websocket watcher above doesn't
   have this problem since it's push-based, not sampled.
-- **Deployer history under-counts badly for the exact wallets it most needs to
-  catch.** Confirmed live: a real deployer wallet creating a new mint roughly
-  every 1-2 seconds still showed only 0-1 "prior launches" when
-  `fetchDeployerHistoryInput`'s default 100-signature scan ran against it —
-  `scoreDeployerHistory` returned `{ score: 0, reasons: ["no prior tokens
-  found from this deployer"] }`, i.e. the lowest possible risk reading, for
-  one of the most prolific token-creation wallets seen during testing. The
-  create instructions are a small fraction of that wallet's own signature
-  history (most of its other transactions are something else), so raising
-  the scan limit helps only proportionally and multiplies `getTransaction`
-  calls (worse 429s) for uncertain gain. This is a false-negative, which is
-  the worse failure direction for a risk tool — worth a dedicated fix before
-  leaning on this signal's score of 0 as "clean." One promising direction not
-  yet attempted: the live websocket watcher already observes every create as
-  it happens — it could build its own running `deployer -> prior mints` index
-  from launches it has personally seen, instead of only reconstructing
-  history after the fact via `getSignaturesForAddress`. That doesn't help a
-  deployer's pre-existing history (cold start), but would stop under-counting
-  for repeat offenders going forward.
+- **Deployer history's retroactive scan alone under-counted badly for the
+  exact wallets it most needs to catch** (confirmed live: a real deployer
+  creating a mint roughly every 1-2 seconds still showed only 0-1 "prior
+  launches" within `fetchDeployerHistoryInput`'s default 100-signature scan —
+  a false-negative scoring `0`, the lowest possible risk, for one of the most
+  prolific creators seen during testing). **Partially fixed:**
+  `src/deployerIndex.ts` now builds a running `deployer -> prior mints` index
+  from every launch either discovery path (websocket watcher or backstop
+  poller) observes live, and `fetchDeployerHistoryInput` merges it in
+  alongside the retroactive scan. This stops under-counting a repeat offender
+  *going forward* once the process has seen them create twice. It does not
+  help a deployer's pre-existing (pre-startup) history — that's still bounded
+  by the retroactive scan's lookback limit, which raising doesn't fix cheaply
+  (more signatures scanned means more `getTransaction` calls, i.e. worse
+  429s) since creates are such a small fraction of a prolific wallet's own
+  signature history. **Live-confirmed:** watching the same prolific deployer
+  (`4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf`) create several mints in a
+  row, the live-observed index caught the pattern the retroactive scan alone
+  missed — the signal's score rose from `40` ("too few prior tokens") to `90`
+  ("4 of 4 prior tokens from this deployer never migrated") by its 4th
+  observed launch in the same process, using only the index (a 1-signature
+  retroactive scan limit was used in the check, to isolate the index's
+  contribution from the scan's).
 - `findFundingSource` (in `src/data/bundledBuys.ts`) has the same style of
   lookback-limit cap (default 50 signatures) for a buyer's funding source —
   not yet live-checked against a real long-history wallet this session (ran

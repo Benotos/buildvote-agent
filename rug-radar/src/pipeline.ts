@@ -15,6 +15,7 @@ import { combineSignals } from "./scorer.js";
 import { KNOWN_PROGRAM_ACCOUNT_ADDRESSES } from "./knownAccounts.js";
 import type { SolanaRpcClient } from "./rpc.js";
 import type { DiscoveredLaunch } from "./discovery.js";
+import type { DeployerIndex } from "./deployerIndex.js";
 import type { LaunchScore, SignalResult } from "./types.js";
 
 export type PipelineRpc = Pick<
@@ -29,10 +30,19 @@ export type PipelineRpc = Pick<
 export async function scoreLaunch(
   rpc: PipelineRpc,
   launch: DiscoveredLaunch,
+  deployerIndex?: DeployerIndex,
 ): Promise<LaunchScore> {
+  // Record before use so a deployer's current launch is visible to the next
+  // one scored for the same deployer; getPriorLaunches excludes it here via
+  // excludeMint, so recording first vs. after doesn't change this call's result.
+  deployerIndex?.record(launch);
+  const observedPriorLaunches = deployerIndex?.getPriorLaunches(launch.deployer, launch.mint) ?? [];
+
   const results = await Promise.all([
     safeSignal("deployer-history", async () => {
-      const priorLaunches = await fetchDeployerHistoryInput(rpc, launch.deployer, launch.mint);
+      const priorLaunches = await fetchDeployerHistoryInput(rpc, launch.deployer, launch.mint, {
+        observedPriorLaunches,
+      });
       return scoreDeployerHistory({ deployer: launch.deployer, priorLaunches });
     }),
     safeSignal("bundled-buys", async () => {

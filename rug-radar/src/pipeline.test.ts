@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { scoreLaunch } from "./pipeline.js";
 import { base58Decode } from "./base58.js";
+import { DeployerIndex } from "./deployerIndex.js";
 import type { DiscoveredLaunch } from "./discovery.js";
 
 const LAUNCH: DiscoveredLaunch = {
@@ -66,6 +67,39 @@ test("scores a launch by combining all four signals", async () => {
     "liquidity",
   ]);
   assert.ok(score.score >= 0 && score.score <= 100);
+});
+
+test("uses the deployer index to catch prior launches the signature scan missed", async () => {
+  const rpc = baseFakeRpc(); // getSignaturesForAddress returns [] — scan alone finds no history
+  const deployerIndex = new DeployerIndex();
+  const priorLaunch: DiscoveredLaunch = {
+    mint: "MintPrior11111111111111111111111111111111",
+    deployer: LAUNCH.deployer,
+    bondingCurve: "CurvePrior111111111111111111111111111111",
+    createdAt: 1699999000,
+    signature: "sigPrior",
+  };
+
+  // Simulate the watcher/poller having observed one earlier launch from this
+  // deployer before the current one is scored.
+  deployerIndex.record(priorLaunch);
+
+  const score = await scoreLaunch(rpc, LAUNCH, deployerIndex);
+  const deployerHistory = score.signals.find((s) => s.name === "deployer-history");
+
+  assert.ok(deployerHistory);
+  assert.ok(deployerHistory.reasons.some((r) => r.includes("1 of 1 prior token")));
+});
+
+test("records the current launch so a later launch from the same deployer sees it", async () => {
+  const rpc = baseFakeRpc();
+  const deployerIndex = new DeployerIndex();
+
+  await scoreLaunch(rpc, LAUNCH, deployerIndex);
+
+  assert.deepEqual(deployerIndex.getPriorLaunches(LAUNCH.deployer, "SomeOtherMint"), [
+    { mint: LAUNCH.mint, bondingCurve: LAUNCH.bondingCurve },
+  ]);
 });
 
 test("drops a signal that fails to fetch instead of failing the whole launch", async () => {

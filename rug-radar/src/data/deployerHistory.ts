@@ -11,8 +11,17 @@ type HistoryFetcher = Pick<
 export interface FetchDeployerHistoryOptions {
   // How many of the deployer's most recent signatures to scan for past
   // pump.fun "create" instructions. A prolific deployer with more history
-  // than this limit will be under-counted rather than scanned exhaustively.
+  // than this limit will be under-counted rather than scanned exhaustively
+  // (confirmed live — see README's "Known limitations": a prolific
+  // deployer's creates are a tiny fraction of its own signature history, so
+  // this scan alone badly under-counts them regardless of the limit).
   signatureLimit?: number;
+  // Mints this deployer is already known to have created, observed live by
+  // the websocket watcher/poller rather than found by this scan (see
+  // DeployerIndex). Supplements the scan above, deduped by mint — this is
+  // what actually catches a prolific deployer in practice, since it doesn't
+  // depend on their creates showing up densely enough in a signature window.
+  observedPriorLaunches?: { mint: string; bondingCurve: string }[];
 }
 
 const DEFAULT_SIGNATURE_LIMIT = 100;
@@ -40,6 +49,14 @@ export async function fetchDeployerHistoryInput(
 
     const migrated = await wasMigrated(rpc, created.bondingCurve);
     priorLaunches.push({ mint: created.mint, migrated });
+  }
+
+  for (const observed of options.observedPriorLaunches ?? []) {
+    if (seenMints.has(observed.mint)) continue;
+    seenMints.add(observed.mint);
+
+    const migrated = await wasMigrated(rpc, observed.bondingCurve);
+    priorLaunches.push({ mint: observed.mint, migrated });
   }
 
   return priorLaunches;

@@ -7,6 +7,7 @@ import { findNewLaunches } from "./discovery.js";
 import { scoreLaunch, type PipelineRpc } from "./pipeline.js";
 import type { LiveFeed } from "./feed.js";
 import type { SolanaRpcClient } from "./rpc.js";
+import type { DeployerIndex } from "./deployerIndex.js";
 
 export interface PollState {
   sinceBlockTime: number | null;
@@ -14,13 +15,18 @@ export interface PollState {
 
 type PollerRpc = PipelineRpc & Pick<SolanaRpcClient, "getSignaturesForAddress" | "getTransaction">;
 
-export async function pollOnce(rpc: PollerRpc, feed: LiveFeed, state: PollState): Promise<void> {
+export async function pollOnce(
+  rpc: PollerRpc,
+  feed: LiveFeed,
+  state: PollState,
+  deployerIndex?: DeployerIndex,
+): Promise<void> {
   const { launches, newestBlockTime } = await findNewLaunches(rpc, state.sinceBlockTime);
   state.sinceBlockTime = newestBlockTime;
 
   for (const launch of launches) {
     try {
-      feed.add(await scoreLaunch(rpc, launch));
+      feed.add(await scoreLaunch(rpc, launch, deployerIndex));
     } catch (err) {
       console.error(`failed to score launch ${launch.mint}:`, err instanceof Error ? err.message : err);
     }

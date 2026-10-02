@@ -137,3 +137,57 @@ test("treats a create instruction from a different deployer as not this wallet's
   const priorLaunches = await fetchDeployerHistoryInput(fakeRpc, DEPLOYER, "CurrentMint");
   assert.equal(priorLaunches.length, 0);
 });
+
+test("merges in observed prior launches missed by the signature scan", async () => {
+  const fakeRpc = {
+    getSignaturesForAddress: async () => [],
+    getTransaction: async () => createTransaction("CurrentMint", "CurveX", DEPLOYER),
+    getAccountInfo: async (address: string) => bondingCurveAccountInfo(address === "CurveObserved"),
+  };
+
+  const priorLaunches = await fetchDeployerHistoryInput(fakeRpc, DEPLOYER, "CurrentMint", {
+    observedPriorLaunches: [{ mint: "MintObserved", bondingCurve: "CurveObserved" }],
+  });
+
+  assert.deepEqual(priorLaunches, [{ mint: "MintObserved", migrated: true }]);
+});
+
+test("does not double-count an observed mint the scan already found", async () => {
+  let getTransactionCalls = 0;
+  let accountInfoCalls = 0;
+  const fakeRpc = {
+    getSignaturesForAddress: async () => [
+      { signature: "sigA", slot: 1, err: null, memo: null, blockTime: 1700000000 },
+    ],
+    getTransaction: async () => {
+      getTransactionCalls++;
+      return createTransaction("MintA", "CurveA", DEPLOYER);
+    },
+    getAccountInfo: async () => {
+      accountInfoCalls++;
+      return bondingCurveAccountInfo(false);
+    },
+  };
+
+  const priorLaunches = await fetchDeployerHistoryInput(fakeRpc, DEPLOYER, "CurrentMint", {
+    observedPriorLaunches: [{ mint: "MintA", bondingCurve: "CurveA" }],
+  });
+
+  assert.deepEqual(priorLaunches, [{ mint: "MintA", migrated: false }]);
+  assert.equal(getTransactionCalls, 1);
+  assert.equal(accountInfoCalls, 1);
+});
+
+test("an observed mint never counts as its own prior history", async () => {
+  const fakeRpc = {
+    getSignaturesForAddress: async () => [],
+    getTransaction: async () => null,
+    getAccountInfo: async () => bondingCurveAccountInfo(true),
+  };
+
+  const priorLaunches = await fetchDeployerHistoryInput(fakeRpc, DEPLOYER, "CurrentMint", {
+    observedPriorLaunches: [{ mint: "CurrentMint", bondingCurve: "CurveX" }],
+  });
+
+  assert.equal(priorLaunches.length, 0);
+});

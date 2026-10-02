@@ -8,6 +8,7 @@ import { LiveFeed } from "./feed.js";
 import { pollOnce, type PollState } from "./poller.js";
 import { scoreLaunch } from "./pipeline.js";
 import { LaunchWatcher, deriveWsUrl } from "./wsDiscovery.js";
+import { DeployerIndex } from "./deployerIndex.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "public");
@@ -15,6 +16,10 @@ const publicDir = path.join(__dirname, "..", "public");
 const config = loadConfig();
 const feed = new LiveFeed();
 const pollState: PollState = { sinceBlockTime: null };
+// Shared across both discovery paths so a deployer's launch is "seen" for
+// deployer-history scoring regardless of which path found it — see
+// deployerIndex.ts for why this exists.
+const deployerIndex = new DeployerIndex();
 
 // Two separate clients, each with half the previous shared budget
 // (maxConcurrent: 2 apiece, same total of 4 in flight against the RPC as
@@ -35,7 +40,7 @@ const wsUrl = config.wsUrl ?? deriveWsUrl(config.rpcUrl);
 const watcher = new LaunchWatcher(wsUrl, watcherRpc, {
   onLaunch: (launch) => {
     if (feed.has(launch.mint)) return;
-    scoreLaunch(watcherRpc, launch)
+    scoreLaunch(watcherRpc, launch, deployerIndex)
       .then((score) => feed.add(score))
       .catch((err) => {
         console.error(`failed to score launch ${launch.mint}:`, err instanceof Error ? err.message : err);
@@ -52,7 +57,7 @@ const watcher = new LaunchWatcher(wsUrl, watcherRpc, {
 const POLL_INTERVAL_MS = 15_000;
 
 function poll(): void {
-  pollOnce(pollRpc, feed, pollState).catch((err) => {
+  pollOnce(pollRpc, feed, pollState, deployerIndex).catch((err) => {
     console.error("poll failed:", err instanceof Error ? err.message : err);
   });
 }
