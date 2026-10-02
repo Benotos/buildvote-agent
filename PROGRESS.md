@@ -505,3 +505,132 @@ file. Reconstructed from `logs/session-0008.md`, which records every step.)*
   hardening (discovery coverage, the lookback-limit caveats noted in
   earlier sessions for deployer history and bundled buys) rather than new
   features.
+
+## Session 9 — 2026-10-01
+
+*(Reconstructed from `logs/session-0011.md` — this run hit its step limit
+before writing here; backfilled from the step log, same approach as Sessions
+6-7.)*
+
+### Done
+- Started the websocket-based discovery redesign planned at the end of
+  Session 8. Confirmed Node 20 (the runtime in use) doesn't expose a global
+  `WebSocket` without the `--experimental-websocket` flag, and used a scratch
+  probe script (`probe-ws.mjs`, meant to be deleted before the session ended
+  but got left behind when the step limit hit) to capture real
+  `logsNotification` log lines from a `logsSubscribe` subscription on the
+  pump.fun program ID, confirming `mentions` matches every instruction type
+  (not just creates) and that `"Instruction: Create"`/`"Instruction:
+  CreateV2"` show up verbatim in the log lines for an actual create.
+- `src/wsLogParser.ts` — `detectCreateInstruction()`: given a program ID and
+  a transaction's log lines, finds whether a `create`/`create_v2` happened
+  *for that program specifically* (not a same-named instruction logged by an
+  unrelated program, and not a Create the target only CPIs into) by tracking
+  Anchor's `Program X invoke [depth]`/`Program X success` nesting rather than
+  just substring-matching the log text. `src/wsLogParser.test.ts` — 6 offline
+  tests using hand-built log-line fixtures.
+- Extracted `resolveLaunchFromSignature()` out of `src/discovery.ts` (was
+  private to the polling loop) so both the poller and the new websocket path
+  can turn a bare signature into a `DiscoveredLaunch` the same way, without
+  duplicating the decode logic.
+- `src/wsDiscovery.ts` — `LaunchWatcher`: subscribes to `logsSubscribe` with
+  a `mentions` filter on the pump.fun program, runs every pushed
+  notification's logs through `detectCreateInstruction` first and only calls
+  `getTransaction` (via `resolveLaunchFromSignature`) on an actual match,
+  reconnects with exponential backoff on a dropped connection, and dedupes
+  redelivered signatures after a resubscribe (bounded `Set`). Takes the
+  `WebSocket` constructor as an injectable factory (`WebSocketFactory`) so
+  tests use a fake instead of a real socket or the DOM lib types.
+  `src/wsDiscovery.test.ts` — 8 offline tests (dedup, reconnect-and-resubscribe,
+  stop() suppressing reconnect, ignores non-create/errored notifications,
+  `deriveWsUrl`'s https→wss / http→ws mapping).
+- Started `src/feed.ts`'s dedup-by-mint (`has()`) needed before wiring both
+  discovery paths into one feed, so a launch found by both the watcher and
+  the backstop poll only gets scored once — session ended mid-wiring before
+  `server.ts`/`config.ts` were updated to actually use `LaunchWatcher`.
+
+### Works
+- `npm run typecheck` and `npm test` were clean at 87/87 (mid-session,
+  before `wsDiscovery.test.ts`'s final tests landed) per the step log;
+  exact end-of-session state wasn't re-verified before the step limit hit
+  (no final "all green" step recorded).
+
+### Next (as left by this session, confirmed/continued in Session 10 below)
+- `wsDiscovery.ts`/`wsLogParser.ts` existed but were not wired into
+  `server.ts` — the live feed was still running on `discovery.ts`'s polling
+  path alone at the end of this session.
+- `probe-ws.mjs` (scratch, meant to be temporary) was left committed.
+- `config.ts` had no `SOLANA_WS_URL` override yet.
+
+## Session 10 — 2026-10-02
+
+### Done
+- Found Session 9 had left real, working code (`wsDiscovery.ts`,
+  `wsLogParser.ts`, `feed.ts`'s dedup) unwired and a scratch file
+  (`probe-ws.mjs`) committed by accident when its run hit the step limit.
+  Verified the existing suite first (95/95 passing, clean typecheck) before
+  touching anything, then finished the wiring:
+  - `src/config.ts` — added optional `SOLANA_WS_URL` (falls back to
+    `wsDiscovery.ts`'s `deriveWsUrl(rpcUrl)` when unset). Updated
+    `config.test.ts` and `.env.example` to match.
+  - `package.json` — `dev`/`start` now set `NODE_OPTIONS=--experimental-websocket`
+    (Node 20 needs the flag; confirmed Node 22+ wouldn't, but this repo runs
+    on Node 20).
+  - `src/server.ts` — now runs `LaunchWatcher` (real-time, primary) alongside
+    the existing `discovery.ts`/`poller.ts` polling loop (kept as a backstop
+    for launches created during startup or a reconnect gap). Both paths feed
+    the same `LiveFeed`, which already dedupes by mint from Session 9's
+    `has()`/`add()` change, so a launch seen by both only scores once.
+  - Deleted `probe-ws.mjs` (the leftover scratch probe).
+- Live-booted the server (manual, not part of the automated suite, deleted
+  no files this time since nothing scratch was created) and found a second
+  real problem beyond what Session 9 left: the websocket watcher correctly
+  finds create-like signatures in real time, but resolving several of them
+  around the same time (plus the backstop poller's own `getTransaction`
+  calls) fired enough concurrent requests to the public RPC that most hit
+  HTTP 429 even with Session 8's retry-with-backoff, because every
+  concurrent call backs off on roughly the same schedule and they keep
+  colliding instead of draining. Fixed: `SolanaRpcClient` (`src/rpc.ts`) now
+  caps in-flight requests at a configurable `maxConcurrent` (default 4),
+  shared across every caller via one queue, so bursts are spaced out instead
+  of all landing on the rate limiter at once. `rpc.test.ts` — 1 new test
+  using a manually-released fake `fetch` to assert the cap holds and queued
+  calls still complete.
+- Re-ran the live smoke test after the concurrency fix: 429s are reduced but
+  not eliminated — the free public RPC's quota is tight enough that
+  client-side queuing alone doesn't fully escape it. This fails closed, not
+  loudly (`safeGetTransaction` already catches and skips, from Session 7),
+  so the symptom is under-reported launches, not a crash. Documented as the
+  new top "Known limitations" entry in `rug-radar/README.md` rather than
+  chasing it further — a real fix needs a paid/less-restricted RPC, out of
+  scope for "public RPC, no keys."
+- Updated `rug-radar/README.md`: "Live feed" section now describes both
+  discovery paths (websocket primary, polling backstop) and the concurrency
+  cap; "Known limitations" reordered so the rate-limit ceiling (still
+  binding) leads, with the old "discovery under-samples" note kept but
+  reframed as why the polling path is now the backstop rather than primary.
+
+### Works
+- `npm run typecheck` and `npm run build` clean.
+- `npm test`: 96/96 passing, all offline (fake WebSocket/fetch objects and
+  hand-built log-line fixtures — no live network calls in the suite).
+- Live-booted `npm start` twice (manual smoke test, ~30s each, public
+  mainnet-beta, no keys): server boots, logs the RPC and derived WS URL,
+  the websocket watcher connects and finds create-like candidates (visible
+  via the `getTransaction failed: ... 429` lines when the rate limit is
+  hit), `/api/feed` keeps responding the whole time, no crash.
+
+### Next
+- The public RPC rate limit is now the main remaining gap — see "Known
+  limitations" in the README. Options worth considering next: backing off
+  the websocket path's own concurrency independently of the backstop
+  poller's (right now they share one client-wide cap, so a busy poller
+  cycle can still starve the watcher's resolves or vice versa), or simply
+  accepting some under-reporting as inherent to a free public endpoint and
+  focusing further sessions elsewhere.
+- No automated test exercises `server.ts` wiring both discovery paths
+  together against live RPC (by design — offline tests only); the live
+  smoke testing in this session was manual, same caveat noted in every
+  session since Session 6.
+- All five TASK.md steps remain functionally complete; what's left is
+  hardening around the rate-limit ceiling, not new features.

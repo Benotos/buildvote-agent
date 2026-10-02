@@ -7,9 +7,11 @@ signals, and serves a small live feed page.
 Status: all five steps of `../TASK.md` are built — data layer, all four
 signals, the combined score, launch discovery, and the live feed page — and
 have been sanity-checked against live mainnet-beta, not just offline
-fixtures. See `../PROGRESS.md` for the full history and known limitations
-(the biggest one: pump.fun's transaction volume is high enough that polling
-signatures under-samples new launches — see "Known limitations" below).
+fixtures. Discovery now runs primarily over a websocket (real-time, not
+polling-and-missing-most-of-it) with the old signature poller kept as a
+backstop. See `../PROGRESS.md` for the full history and "Known limitations"
+below for what's still rough (mainly: the public RPC's rate limit, which no
+amount of client-side queuing fully escapes).
 
 ## Data layer
 
@@ -75,38 +77,59 @@ every time a new signal lands.
 
 ## Live feed
 
-`src/discovery.ts` polls the pump.fun program ID's own signature history for
-new `create`/`create_v2` instructions, tracking a timestamp watermark so each
-poll only looks at launches newer than the last one. `src/pipeline.ts` turns
-one discovered launch into a full `LaunchScore` by running all four signals'
-data-fetch + score functions (a signal that fails to fetch — e.g. too early
-for holder data to settle — is dropped rather than failing the whole
-launch). `src/poller.ts` ties discovery → pipeline → `src/feed.ts` (a
-bounded in-memory list, newest first) into one poll cycle; `src/server.ts`
-runs it on a 15s interval and serves the result from `GET /api/feed`.
+Two discovery paths feed the same pipeline:
+
+- **`src/wsDiscovery.ts`** (primary) — `LaunchWatcher` opens a websocket
+  `logsSubscribe` with a `mentions` filter on the pump.fun program ID. Every
+  push includes the transaction's log lines for free; `src/wsLogParser.ts`
+  checks those client-side for a `create`/`create_v2` instruction (confirmed
+  against real traffic — `mentions` matches every instruction type, not just
+  creates, so this check is what keeps most pushes from costing an RPC call)
+  before calling `getTransaction` on the rare subset that matches. Reconnects
+  with exponential backoff on a dropped connection. Needs Node's
+  `--experimental-websocket` flag (Node 20 doesn't expose `WebSocket`
+  globally without it) — already wired into the `dev`/`start` scripts via
+  `NODE_OPTIONS`.
+- **`src/discovery.ts`** (backstop) — the original signature-polling
+  approach, kept running on a 15s interval so a launch created during
+  startup or a reconnect gap isn't lost. `resolveLaunchFromSignature` (used
+  by both paths) is shared so they decode a `create` the same way.
+
+`src/pipeline.ts` turns one discovered launch into a full `LaunchScore` by
+running all four signals' data-fetch + score functions (a signal that fails
+to fetch — e.g. too early for holder data to settle — is dropped rather than
+failing the whole launch). `src/feed.ts` is a bounded in-memory list, newest
+first, deduplicated by mint (`has()`/`add()`) so the same launch landing via
+both the watcher and the backstop poll only scores once. `src/server.ts`
+wires both discovery paths into the feed and serves it from `GET /api/feed`.
 `public/index.html` polls that endpoint every 10s and renders each launch's
 score and per-signal reasons.
 
-`src/rpc.ts` retries `getTransaction`/other calls with backoff on HTTP 429
-(the public RPC rate-limits aggressively) and requests
-`maxSupportedTransactionVersion: 1` (mainnet-beta now rejects `0` for most
-current transactions — both confirmed against live traffic, not guessed).
+`src/rpc.ts` retries calls with backoff on HTTP 429, caps how many requests
+are in flight at once (`maxConcurrent`, default 4 — a burst of concurrent
+calls all hitting the rate limiter together was colliding on about the same
+backoff schedule instead of draining; one shared queue across every caller
+spaces them out), and requests `maxSupportedTransactionVersion: 1`
+(mainnet-beta now rejects `0` for most current transactions) — all three
+confirmed against live traffic, not guessed.
 
 ### Known limitations
 
-- **Discovery under-samples.** Confirmed live: the pump.fun program sees
-  roughly 500 tx/second across every instruction type combined (buy, sell,
-  create, migrate) — 1000 signatures from `getSignaturesForAddress` span
-  only ~2 seconds. A poll every 15s scanning the most recent ~50 signatures
-  therefore catches a small slice of real launches, not all of them.
-  Raising the per-poll limit doesn't fix this (the firehose dwarfs any sane
-  limit) and makes rate-limiting worse, since each signature needs its own
-  `getTransaction` call. A real fix needs a different discovery mechanism —
-  most likely a websocket `logsSubscribe` with a `mentions` filter on the
-  program, parsing `"Instruction: Create"` out of the log lines that arrive
-  for free with the subscription instead of polling + fetching each
-  transaction. Not attempted yet; see `src/discovery.ts`'s
-  `FindNewLaunchesOptions.limit` comment.
+- **The public RPC's rate limit is still the binding constraint.** Even with
+  retry-with-backoff and a concurrency cap (above), a live run still logs
+  occasional `getTransaction failed: ... 429` lines during a burst of
+  candidate creates — the free public endpoint's quota is tight enough that
+  client-side queuing reduces but doesn't eliminate it. This fails closed,
+  not loudly: `safeGetTransaction` catches and skips, so a dropped launch is
+  silently under-reported rather than crashing anything. A real fix needs a
+  paid/less-restricted RPC provider, which is out of scope for "public RPC,
+  no keys."
+- The old signature-polling path (`src/discovery.ts`) under-samples on its
+  own — confirmed live, the pump.fun program sees roughly 500 tx/second
+  across every instruction type combined, so 1000 signatures from
+  `getSignaturesForAddress` span only ~2 seconds. This is why it's now the
+  backstop rather than the primary path; the websocket watcher above doesn't
+  have this problem since it's push-based, not sampled.
 - `fetchDeployerHistoryInput`'s and `findFundingSource`'s (in
   `src/data/bundledBuys.ts`) signature-count lookback limits mean both
   under-count a wallet with a very long history — acceptable for the common

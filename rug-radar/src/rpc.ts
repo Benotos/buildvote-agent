@@ -108,10 +108,19 @@ export interface RetryOptions {
   maxRetries?: number;
   baseDelayMs?: number;
   sleep?: (ms: number) => Promise<void>;
+  // Caps how many requests this client has in flight at once. Per-call retry
+  // alone isn't enough against the public RPC: a burst of concurrent calls
+  // (e.g. the ws watcher resolving several creates at once, or the pipeline's
+  // four signals fetching in parallel) all land on the rate limiter together
+  // and all back off on roughly the same schedule, so they keep colliding
+  // instead of draining (observed live). Queuing them here, one client-wide
+  // limit shared by every caller, spaces requests out instead.
+  maxConcurrent?: number;
 }
 
 const DEFAULT_MAX_RETRIES = 4;
 const DEFAULT_BASE_DELAY_MS = 300;
+const DEFAULT_MAX_CONCURRENT = 4;
 
 function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -122,6 +131,9 @@ export class SolanaRpcClient {
   private readonly maxRetries: number;
   private readonly baseDelayMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
+  private readonly maxConcurrent: number;
+  private activeCount = 0;
+  private readonly waiters: Array<() => void> = [];
 
   constructor(
     private readonly url: string,
@@ -131,30 +143,53 @@ export class SolanaRpcClient {
     this.maxRetries = retry.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.baseDelayMs = retry.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
     this.sleep = retry.sleep ?? defaultSleep;
+    this.maxConcurrent = retry.maxConcurrent ?? DEFAULT_MAX_CONCURRENT;
+  }
+
+  private acquireSlot(): Promise<void> {
+    if (this.activeCount < this.maxConcurrent) {
+      this.activeCount++;
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => this.waiters.push(resolve));
+  }
+
+  private releaseSlot(): void {
+    const next = this.waiters.shift();
+    if (next) {
+      next();
+    } else {
+      this.activeCount--;
+    }
   }
 
   private async request<T>(method: string, params: unknown[]): Promise<T> {
-    for (let attempt = 0; ; attempt++) {
-      const res = await this.fetchImpl(this.url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: this.nextId++, method, params }),
-      });
+    await this.acquireSlot();
+    try {
+      for (let attempt = 0; ; attempt++) {
+        const res = await this.fetchImpl(this.url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: this.nextId++, method, params }),
+        });
 
-      if (res.status === 429 && attempt < this.maxRetries) {
-        await this.sleep(this.baseDelayMs * 2 ** attempt);
-        continue;
-      }
+        if (res.status === 429 && attempt < this.maxRetries) {
+          await this.sleep(this.baseDelayMs * 2 ** attempt);
+          continue;
+        }
 
-      if (!res.ok) {
-        throw new Error(`RPC HTTP error ${res.status} for ${method}`);
-      }
+        if (!res.ok) {
+          throw new Error(`RPC HTTP error ${res.status} for ${method}`);
+        }
 
-      const body = (await res.json()) as RpcResponse<T>;
-      if (body.error) {
-        throw new RpcError(body.error.message, body.error.code);
+        const body = (await res.json()) as RpcResponse<T>;
+        if (body.error) {
+          throw new RpcError(body.error.message, body.error.code);
+        }
+        return body.result as T;
       }
-      return body.result as T;
+    } finally {
+      this.releaseSlot();
     }
   }
 

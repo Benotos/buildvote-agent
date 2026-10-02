@@ -209,6 +209,48 @@ test("gives up after maxRetries consecutive 429s and throws", async () => {
   assert.equal(call, 3); // initial attempt + 2 retries
 });
 
+test("caps the number of in-flight requests at maxConcurrent", async () => {
+  let active = 0;
+  let maxActive = 0;
+  const releasers: Array<() => void> = [];
+  const fetchImpl: FetchLike = (async () => {
+    active++;
+    maxActive = Math.max(maxActive, active);
+    await new Promise<void>((resolve) => releasers.push(resolve));
+    active--;
+    return new Response(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: { context: { slot: 1 }, value: { amount: "1", decimals: 0, uiAmount: 1, uiAmountString: "1" } },
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  }) as FetchLike;
+
+  const client = new SolanaRpcClient("https://example.test/rpc", fetchImpl, { maxConcurrent: 2 });
+
+  const calls = Promise.all([
+    client.getTokenSupply("Mint1"),
+    client.getTokenSupply("Mint2"),
+    client.getTokenSupply("Mint3"),
+    client.getTokenSupply("Mint4"),
+  ]);
+
+  // Let the first batch's fetches actually start before releasing any.
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(active, 2);
+  releasers.shift()?.();
+  releasers.shift()?.();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(active, 2);
+  releasers.shift()?.();
+  releasers.shift()?.();
+
+  await calls;
+  assert.equal(maxActive, 2);
+});
+
 test("safeGetTransaction returns the transaction on success", async () => {
   const rpc = { getTransaction: async () => ({ ok: true }) as any };
   const result = await safeGetTransaction(rpc, "sig1");
