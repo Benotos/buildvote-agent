@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T00:50:23Z",
+  "updated_at": "2026-10-02T00:50:49Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 12,
     "started_at": "2026-10-02T00:46:00Z",
-    "turns": 43
+    "turns": 47
   },
   "round": {
     "number": null,
@@ -146,31 +146,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T20:24:32Z",
-      "kind": "tool",
-      "text": "TaskUpdate"
-    },
-    {
-      "t": "2026-10-01T20:24:33Z",
-      "kind": "tool",
-      "text": "TaskUpdate"
-    },
-    {
-      "t": "2026-10-01T20:24:52Z",
-      "kind": "read",
-      "text": "rug-radar/tsconfig.json"
-    },
-    {
-      "t": "2026-10-01T20:25:20Z",
-      "kind": "edit",
-      "text": "rug-radar/src/wsDiscovery.ts"
-    },
-    {
-      "t": "2026-10-01T20:25:21Z",
-      "kind": "think",
-      "text": "Now the test file with a fake WebSocket."
-    },
     {
       "t": "2026-10-01T20:25:21Z",
       "kind": "run",
@@ -545,6 +520,31 @@
       "t": "2026-10-02T00:50:18Z",
       "kind": "run",
       "text": "sed -n '1,60p' src/rpc.test.ts"
+    },
+    {
+      "t": "2026-10-02T00:50:24Z",
+      "kind": "run",
+      "text": "wc -l src/rpc.ts && grep -n \"429\\|retry\\|Retry\\|maxRetries\" src/rpc.test.ts"
+    },
+    {
+      "t": "2026-10-02T00:50:27Z",
+      "kind": "think",
+      "text": "Let me view the full rpc.ts to implement a concurrency limiter cleanly."
+    },
+    {
+      "t": "2026-10-02T00:50:28Z",
+      "kind": "read",
+      "text": "rug-radar/src/rpc.ts"
+    },
+    {
+      "t": "2026-10-02T00:50:46Z",
+      "kind": "edit",
+      "text": "rug-radar/src/rpc.ts"
+    },
+    {
+      "t": "2026-10-02T00:50:49Z",
+      "kind": "run",
+      "text": "sed -n '150,223p' src/rpc.test.ts"
     }
   ],
   "schedule": {
