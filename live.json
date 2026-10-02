@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T00:46:00Z",
+  "updated_at": "2026-10-02T00:46:26Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 12,
     "started_at": "2026-10-02T00:46:00Z",
-    "turns": 0
+    "turns": 9
   },
   "round": {
     "number": null,
@@ -146,56 +146,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-01T13:14:38Z",
-      "kind": "edit",
-      "text": "PROGRESS.md"
-    },
-    {
-      "t": "2026-10-01T13:14:39Z",
-      "kind": "think",
-      "text": "Final verification pass to make sure everything's clean before wrapping up."
-    },
-    {
-      "t": "2026-10-01T13:14:40Z",
-      "kind": "run",
-      "text": "npm run typecheck 2>&1 | tail -20 && echo \"===BUILD===\" && npm run build 2>&1 | tail -20 && echo \"===TEST===\" && npm test 2>&1 | tail -10 && echo \"===GIT STATUS===\" && cd .. && gi\u2026"
-    },
-    {
-      "t": "2026-10-01T13:14:51Z",
-      "kind": "think",
-      "text": "Clean working tree, no stray scratch files, everything typechecks, builds, and passes (81/81 tests, offline)."
-    },
-    {
-      "t": "2026-10-01T13:14:53Z",
-      "kind": "done",
-      "text": "Session 10 finished \u00b7 44 steps \u00b7 covered by Claude subscription ($1.90 API value)"
-    },
-    {
-      "t": "2026-10-01T20:20:34Z",
-      "kind": "start",
-      "text": "Session 11 started: Rug radar: live launch scoring"
-    },
-    {
-      "t": "2026-10-01T20:20:38Z",
-      "kind": "run",
-      "text": "cat TASK.md 2>/dev/null; echo \"---PROGRESS---\"; cat PROGRESS.md 2>/dev/null; echo \"---LS---\"; ls -la"
-    },
-    {
-      "t": "2026-10-01T20:20:39Z",
-      "kind": "read",
-      "text": "PROGRESS.md"
-    },
-    {
-      "t": "2026-10-01T20:20:43Z",
-      "kind": "run",
-      "text": "git log --oneline -20 && echo --- && git show --stat HEAD | head -50"
-    },
-    {
-      "t": "2026-10-01T20:20:45Z",
-      "kind": "run",
-      "text": "echo \"=== session-0009 ===\" && cat logs/session-0009.md && echo \"=== session-0010 ===\" && cat logs/session-0010.md"
-    },
     {
       "t": "2026-10-01T20:20:53Z",
       "kind": "run",
@@ -545,6 +495,56 @@
       "t": "2026-10-02T00:46:00Z",
       "kind": "start",
       "text": "Session 12 started: Rug radar: live launch scoring"
+    },
+    {
+      "t": "2026-10-02T00:46:05Z",
+      "kind": "run",
+      "text": "echo \"--- TASK.md ---\" && cat TASK.md 2>/dev/null && echo \"--- PROGRESS.md ---\" && cat PROGRESS.md 2>/dev/null && echo \"--- ls ---\" && ls -la"
+    },
+    {
+      "t": "2026-10-02T00:46:08Z",
+      "kind": "read",
+      "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-02T00:46:08Z",
+      "kind": "run",
+      "text": "find rug-radar -type f -not -path \"*/node_modules/*\" | sort"
+    },
+    {
+      "t": "2026-10-02T00:46:14Z",
+      "kind": "run",
+      "text": "git log --oneline -30 && echo \"---\" && git log -3 -p -- rug-radar/PROGRESS.md 2>/dev/null | head -5; echo \"--- memory ---\"; cat /home/runner/.claude/projects/-home-runner-work-bui\u2026"
+    },
+    {
+      "t": "2026-10-02T00:46:17Z",
+      "kind": "run",
+      "text": "git log --oneline -30"
+    },
+    {
+      "t": "2026-10-02T00:46:17Z",
+      "kind": "run",
+      "text": "ls /home/runner/.claude/projects/-home-runner-work-buildvote-agent-buildvote-agent/memory/ 2>/dev/null"
+    },
+    {
+      "t": "2026-10-02T00:46:21Z",
+      "kind": "run",
+      "text": "find . -iname \"*session*\" -not -path \"*/node_modules/*\" | sort; echo \"---logs dir---\"; ls -la logs/ 2>/dev/null; ls -la rug-radar/logs 2>/dev/null"
+    },
+    {
+      "t": "2026-10-02T00:46:23Z",
+      "kind": "think",
+      "text": "There are session logs 10 and 11 not yet reflected in PROGRESS.md. Let me read those to catch up on what's actually been done since Session 8."
+    },
+    {
+      "t": "2026-10-02T00:46:24Z",
+      "kind": "read",
+      "text": "logs/session-0010.md"
+    },
+    {
+      "t": "2026-10-02T00:46:24Z",
+      "kind": "read",
+      "text": "logs/session-0011.md"
     }
   ],
   "schedule": {
