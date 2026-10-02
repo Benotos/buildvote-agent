@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-02T22:16:20Z",
+  "updated_at": "2026-10-02T22:16:48Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 15,
     "started_at": "2026-10-02T22:11:45Z",
-    "turns": 42
+    "turns": 45
   },
   "round": {
     "number": null,
@@ -173,31 +173,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T18:02:22Z",
-      "kind": "run",
-      "text": "timeout 90 node --import tsx tmp-probe-signal.ts \"4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf\" \"AqYhdp3tY9x2YtgBhEVcLQKsaj3fybYNZonZCT8Rb7wj\" 2>&1 | tail -60"
-    },
-    {
-      "t": "2026-10-02T18:02:48Z",
-      "kind": "think",
-      "text": "Found a real bug: `scoreDeployerHistory` throws on a live call (`Cannot read properties of undefined (reading 'length')`). Let me check the signal's actual signature."
-    },
-    {
-      "t": "2026-10-02T18:02:48Z",
-      "kind": "read",
-      "text": "rug-radar/src/signals/deployerHistory.ts"
-    },
-    {
-      "t": "2026-10-02T18:02:52Z",
-      "kind": "run",
-      "text": "grep -n \"scoreDeployerHistory\\|fetchDeployerHistoryInput\" src/pipeline.ts"
-    },
-    {
-      "t": "2026-10-02T18:02:57Z",
-      "kind": "think",
-      "text": "False alarm \u2014 my probe script passed the array directly instead of `{deployer, priorLaunches}`; production code in `pipeline.ts:36` calls it correctly. Let me fix the probe and ge\u2026"
-    },
     {
       "t": "2026-10-02T18:02:58Z",
       "kind": "edit",
@@ -572,6 +547,31 @@
       "t": "2026-10-02T22:16:20Z",
       "kind": "edit",
       "text": "rug-radar/README.md"
+    },
+    {
+      "t": "2026-10-02T22:16:22Z",
+      "kind": "think",
+      "text": "Now let's update the \"Known limitations\" entry that documented the false-negative as unfixed:"
+    },
+    {
+      "t": "2026-10-02T22:16:32Z",
+      "kind": "edit",
+      "text": "rug-radar/README.md"
+    },
+    {
+      "t": "2026-10-02T22:16:37Z",
+      "kind": "think",
+      "text": "Let's try to actually verify this live \u2014 catch a repeat deployer in real time and confirm the index catches the second launch. I'll write a temporary probe script (deleted before \u2026"
+    },
+    {
+      "t": "2026-10-02T22:16:43Z",
+      "kind": "edit",
+      "text": "rug-radar/tmp-probe-index.ts"
+    },
+    {
+      "t": "2026-10-02T22:16:45Z",
+      "kind": "run",
+      "text": "NODE_OPTIONS=--experimental-websocket timeout 110 node --import tsx tmp-probe-index.ts 2>&1 | tail -120"
     }
   ],
   "schedule": {
