@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-03T11:36:51Z",
+  "updated_at": "2026-10-03T11:37:17Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 17,
     "started_at": "2026-10-03T11:36:51Z",
-    "turns": 0
+    "turns": 9
   },
   "round": {
     "number": null,
@@ -191,56 +191,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T22:14:12Z",
-      "kind": "edit",
-      "text": "rug-radar/src/deployerIndex.ts"
-    },
-    {
-      "t": "2026-10-02T22:14:14Z",
-      "kind": "think",
-      "text": "Now the test file for it:"
-    },
-    {
-      "t": "2026-10-02T22:14:22Z",
-      "kind": "edit",
-      "text": "rug-radar/src/deployerIndex.test.ts"
-    },
-    {
-      "t": "2026-10-02T22:14:24Z",
-      "kind": "think",
-      "text": "Now update `fetchDeployerHistoryInput` to accept observed prior launches:"
-    },
-    {
-      "t": "2026-10-02T22:14:28Z",
-      "kind": "edit",
-      "text": "rug-radar/src/data/deployerHistory.ts"
-    },
-    {
-      "t": "2026-10-02T22:14:35Z",
-      "kind": "edit",
-      "text": "rug-radar/src/data/deployerHistory.ts"
-    },
-    {
-      "t": "2026-10-02T22:14:37Z",
-      "kind": "think",
-      "text": "Now wire it into `pipeline.ts`:"
-    },
-    {
-      "t": "2026-10-02T22:14:39Z",
-      "kind": "edit",
-      "text": "rug-radar/src/pipeline.ts"
-    },
-    {
-      "t": "2026-10-02T22:14:46Z",
-      "kind": "edit",
-      "text": "rug-radar/src/pipeline.ts"
-    },
-    {
-      "t": "2026-10-02T22:14:48Z",
-      "kind": "think",
-      "text": "Now update `poller.ts` to thread the `deployerIndex` through:"
-    },
     {
       "t": "2026-10-02T22:14:53Z",
       "kind": "edit",
@@ -590,6 +540,56 @@
       "t": "2026-10-03T11:36:51Z",
       "kind": "start",
       "text": "Session 17 started: Rug radar: live launch scoring"
+    },
+    {
+      "t": "2026-10-03T11:36:55Z",
+      "kind": "think",
+      "text": "I'll start by reading the task and progress files."
+    },
+    {
+      "t": "2026-10-03T11:36:56Z",
+      "kind": "run",
+      "text": "cat /home/runner/work/buildvote-agent/buildvote-agent/TASK.md 2>/dev/null; echo \"---PROGRESS---\"; cat /home/runner/work/buildvote-agent/buildvote-agent/PROGRESS.md 2>/dev/null"
+    },
+    {
+      "t": "2026-10-03T11:36:58Z",
+      "kind": "read",
+      "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-03T11:36:59Z",
+      "kind": "read",
+      "text": "TASK.md"
+    },
+    {
+      "t": "2026-10-03T11:37:02Z",
+      "kind": "run",
+      "text": "git log --oneline -20 && echo \"---\" && git log --oneline -5 -- PROGRESS.md && echo \"---status---\" && git status && echo \"---ls rug-radar---\" && ls rug-radar"
+    },
+    {
+      "t": "2026-10-03T11:37:07Z",
+      "kind": "run",
+      "text": "git log --all --oneline | head -30; echo \"---\"; git log -1 --stat | head -50; echo \"---depth---\"; git rev-list --count HEAD"
+    },
+    {
+      "t": "2026-10-03T11:37:13Z",
+      "kind": "run",
+      "text": "cat /home/runner/work/buildvote-agent/buildvote-agent/queue.json"
+    },
+    {
+      "t": "2026-10-03T11:37:14Z",
+      "kind": "read",
+      "text": "logs/session-0014.md"
+    },
+    {
+      "t": "2026-10-03T11:37:14Z",
+      "kind": "read",
+      "text": "logs/session-0015.md"
+    },
+    {
+      "t": "2026-10-03T11:37:14Z",
+      "kind": "read",
+      "text": "logs/session-0016.md"
     }
   ],
   "schedule": {
