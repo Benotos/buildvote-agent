@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-03T11:48:24Z",
+  "updated_at": "2026-10-03T11:48:53Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 17,
     "started_at": "2026-10-03T11:36:51Z",
-    "turns": 21
+    "turns": 22
   },
   "round": {
     "number": null,
@@ -191,11 +191,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T22:15:44Z",
-      "kind": "think",
-      "text": "All 107 tests pass (96 \u2192 107, the 11 new ones). Let's also confirm the build works and do a quick live boot smoke test."
-    },
     {
       "t": "2026-10-02T22:15:44Z",
       "kind": "run",
@@ -590,6 +585,11 @@
       "t": "2026-10-03T11:46:14Z",
       "kind": "run",
       "text": "NODE_OPTIONS=--experimental-websocket timeout 280 node --import tsx tmp-probe-funding.ts > /tmp/probe-funding.out 2>&1; echo \"exit:$?\"; cat /tmp/probe-funding.out"
+    },
+    {
+      "t": "2026-10-03T11:48:35Z",
+      "kind": "run",
+      "text": "NODE_OPTIONS=--experimental-websocket timeout 20 node -e ' const ws = new WebSocket(\"wss://api.mainnet-beta.solana.com\"); let count = 0, createCount = 0; ws.onopen = () => {   con\u2026"
     }
   ],
   "schedule": {
