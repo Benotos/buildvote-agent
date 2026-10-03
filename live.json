@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-03T05:15:25Z",
+  "updated_at": "2026-10-03T05:15:51Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 16,
     "started_at": "2026-10-03T05:15:25Z",
-    "turns": 0
+    "turns": 6
   },
   "round": {
     "number": null,
@@ -182,36 +182,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T22:12:17Z",
-      "kind": "read",
-      "text": "logs/session-0014.md"
-    },
-    {
-      "t": "2026-10-02T22:12:30Z",
-      "kind": "think",
-      "text": "Good news \u2014 PROGRESS.md is actually already up to date; logs 0013/0014 match what's documented as \"Session 11/12\" there (the numbering just doesn't align 1:1, but no reconstructio\u2026"
-    },
-    {
-      "t": "2026-10-02T22:12:31Z",
-      "kind": "run",
-      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && npm install --no-audit --no-fund 2>&1 | tail -5 && echo \"===TYPECHECK===\" && npm run typecheck 2>&1 | tail -20 &&\u2026"
-    },
-    {
-      "t": "2026-10-02T22:12:40Z",
-      "kind": "think",
-      "text": "Baseline is clean: typecheck, 96/96 tests, no uncommitted changes. Let me set up a task list and look at the relevant source files before implementing the live-observed deployer i\u2026"
-    },
-    {
-      "t": "2026-10-02T22:12:41Z",
-      "kind": "tool",
-      "text": "ToolSearch"
-    },
-    {
-      "t": "2026-10-02T22:12:41Z",
-      "kind": "read",
-      "text": "rug-radar/src/pipeline.ts"
-    },
     {
       "t": "2026-10-02T22:12:44Z",
       "kind": "read",
@@ -581,6 +551,36 @@
       "t": "2026-10-03T05:15:25Z",
       "kind": "start",
       "text": "Session 16 started: Rug radar: live launch scoring"
+    },
+    {
+      "t": "2026-10-03T05:15:30Z",
+      "kind": "run",
+      "text": "cat TASK.md 2>/dev/null; echo \"---PROGRESS---\"; cat PROGRESS.md 2>/dev/null"
+    },
+    {
+      "t": "2026-10-03T05:15:32Z",
+      "kind": "read",
+      "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-03T05:15:36Z",
+      "kind": "run",
+      "text": "git log --oneline -20 && echo --- && git show --stat HEAD | head -50"
+    },
+    {
+      "t": "2026-10-03T05:15:42Z",
+      "kind": "read",
+      "text": "logs/session-0014.md"
+    },
+    {
+      "t": "2026-10-03T05:15:42Z",
+      "kind": "read",
+      "text": "logs/session-0015.md"
+    },
+    {
+      "t": "2026-10-03T05:15:51Z",
+      "kind": "run",
+      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && npm install --no-audit --no-fund 2>&1 | tail -5 && echo \"===TYPECHECK===\" && npm run typecheck 2>&1 | tail -20 &&\u2026"
     }
   ],
   "schedule": {
