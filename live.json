@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-03T16:15:33Z",
+  "updated_at": "2026-10-03T16:15:59Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 18,
     "started_at": "2026-10-03T16:15:33Z",
-    "turns": 0
+    "turns": 6
   },
   "round": {
     "number": null,
@@ -200,36 +200,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-03T11:37:14Z",
-      "kind": "read",
-      "text": "logs/session-0015.md"
-    },
-    {
-      "t": "2026-10-03T11:37:14Z",
-      "kind": "read",
-      "text": "logs/session-0016.md"
-    },
-    {
-      "t": "2026-10-03T11:37:33Z",
-      "kind": "read",
-      "text": "rug-radar/tmp-probe-funding.ts"
-    },
-    {
-      "t": "2026-10-03T11:37:33Z",
-      "kind": "run",
-      "text": "cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && ls node_modules 2>/dev/null | head -1; echo \"node_modules present: $?\""
-    },
-    {
-      "t": "2026-10-03T11:37:38Z",
-      "kind": "run",
-      "text": "npm install --no-audit --no-fund 2>&1 | tail -5 && echo \"===TYPECHECK===\" && npm run typecheck 2>&1 | tail -20 && echo \"===TEST===\" && npm test 2>&1 | tail -15 && echo \"===STATUS=\u2026"
-    },
-    {
-      "t": "2026-10-03T11:37:47Z",
-      "kind": "think",
-      "text": "The previous session started a live probe to test the bundled-buys funding-source lookback but ran out of steps before it finished. I'll rerun it synchronously now so I can see th\u2026"
-    },
     {
       "t": "2026-10-03T11:37:48Z",
       "kind": "run",
@@ -599,6 +569,36 @@
       "t": "2026-10-03T16:15:33Z",
       "kind": "start",
       "text": "Session 18 started: Rug radar: live launch scoring"
+    },
+    {
+      "t": "2026-10-03T16:15:38Z",
+      "kind": "run",
+      "text": "echo \"---TASK.md---\" && cat TASK.md 2>/dev/null && echo \"---PROGRESS.md---\" && cat PROGRESS.md 2>/dev/null && echo \"---ls---\" && ls -la"
+    },
+    {
+      "t": "2026-10-03T16:15:40Z",
+      "kind": "read",
+      "text": "PROGRESS.md"
+    },
+    {
+      "t": "2026-10-03T16:15:45Z",
+      "kind": "run",
+      "text": "wc -l PROGRESS.md && git log --oneline -20 && echo \"---\" && ls rug-radar"
+    },
+    {
+      "t": "2026-10-03T16:15:49Z",
+      "kind": "run",
+      "text": "git log --oneline -30 -- rug-radar PROGRESS.md TASK.md | head -50 && echo \"---logs dir---\" && ls logs/ | tail -20 && echo \"---git status---\" && git status"
+    },
+    {
+      "t": "2026-10-03T16:15:52Z",
+      "kind": "run",
+      "text": "git log --oneline | head -30 && echo \"total commits:\" && git log --oneline | wc -l"
+    },
+    {
+      "t": "2026-10-03T16:15:56Z",
+      "kind": "run",
+      "text": "echo \"=== session-0014 ===\" && cat logs/session-0014.md | head -100"
     }
   ],
   "schedule": {
