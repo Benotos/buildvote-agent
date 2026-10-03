@@ -832,3 +832,125 @@ before writing here; backfilled from the step log, same approach as Sessions
   is unchanged by this session — still the main remaining hardening item
   along with whatever the next live-RPC check surfaces.
 - All five TASK.md steps remain functionally complete.
+
+## Sessions 14-16 — 2026-10-02 / 2026-10-03
+
+*(Reconstructed from `logs/session-0014.md`, `logs/session-0015.md`,
+`logs/session-0016.md` — none of these runs updated this file before hitting
+their step limit or finishing; same recurring issue as Sessions 6-9.)*
+
+- Session 14 re-confirmed (same finding as Session 12, same deployer wallet)
+  the deployer-history false-negative on prolific creators; Session 15 then
+  built and live-verified the `DeployerIndex` fix described under Session 13
+  above (the two sessions' logs describe the same work — Session 13's write-up
+  above is the one that matches what actually landed in the repo).
+- Session 16 was very short (13 steps): re-read the backlog, found Session 4's
+  long-open item ("live-check `findFundingSource`'s lookback limit") still
+  outstanding, and started a live probe (`tmp-probe-funding.ts`, watching the
+  websocket feed for a fresh mint with enough early-buy activity to test
+  against) before hitting its step limit. The probe script was left committed
+  — picked up and run in Session 17.
+
+## Session 17 — 2026-10-03
+
+*(Reconstructed from `logs/session-0017.md` — this run hit its step limit
+mid-fix and never updated this file. Completed and verified in Session 18
+below; see that entry for final state.)*
+
+### Done
+- Ran Session 16's leftover `tmp-probe-funding.ts`, but it surfaced a bigger,
+  unrelated problem before the funding-source question could be answered:
+  the **websocket watcher was silently dropping every live launch**.
+  `detectCreateInstruction` correctly found `create_v2` instructions in
+  real-time log pushes (13 in 30s in one capture), but
+  `resolveLaunchFromSignature`'s `getTransaction` call for each of those
+  signatures came back null every time. Root cause, confirmed by timing one
+  signature directly: the public RPC's multi-node cluster can take several
+  seconds (~8.5s measured) after a `logsSubscribe` push before the matching
+  transaction is visible via `getTransaction` on whichever node answers that
+  call — a "not found" result isn't an exception, so nothing surfaced the
+  loss; the launch was just gone.
+- Fixed in `src/discovery.ts`: `resolveLaunchFromSignature` now retries a
+  null `getTransaction` result with exponential backoff (5 retries, 750ms
+  base, ~23s total budget — sized from the measured ~8.5s lag) before giving
+  up; a transaction that resolves but isn't a create is still returned
+  immediately (never retried, since that outcome can't change). `sleep` is
+  injectable so tests stay offline. Wired the same options through
+  `wsDiscovery.ts` (the primary path that hit this live) and
+  `findNewLaunches`'s `resolveOptions` (the backstop poller can hit the same
+  lag on very recent signatures).
+- Added tests for the new retry behavior to `discovery.test.ts` and
+  `wsDiscovery.test.ts`.
+- Ran out of steps before finishing: two pre-existing tests in
+  `discovery.test.ts` that trigger `resolveLaunchFromSignature` without
+  passing `resolveOptions` started hitting the *real* `setTimeout`-based
+  `defaultSleep` (no fake sleep injected), ballooning the offline suite's
+  runtime from ~200ms to ~24s. Mid-fix on this when the session ended; six
+  scratch diagnostic files (`tmp-diag*.ts`, plus Session 16's leftover
+  `tmp-probe-funding.ts`) were left committed instead of deleted.
+
+## Session 18 — 2026-10-03
+
+### Done
+- Picked up where Session 17 left off. Verified the repo first: typecheck and
+  build clean, but `npm test` took ~24s (should be ~200ms-3s for an all-offline
+  suite) — confirmed via per-file timing that one test in `discovery.test.ts`
+  ("skips a signature whose getTransaction call throws, instead of failing the
+  whole poll") was the culprit: `safeGetTransaction` treats a thrown error the
+  same as "not found", so Session 17's new retry loop ran for real with no
+  injected sleep (750ms, 1500, 3000, 6000, 12000ms = ~23.25s). Fixed by passing
+  `resolveOptions: { retries: 0 }` to that test's `findNewLaunches` call,
+  matching the pattern the adjacent "finds a create instruction..." test
+  already used — this test's intent is "a throw doesn't crash the whole poll",
+  not retry behavior (which the three dedicated `resolveLaunchFromSignature`
+  tests already cover with injected fake sleeps). Suite is back to ~2.6-3s,
+  111/111 passing, all offline.
+- Deleted the 7 scratch diagnostic files Session 17 (and Session 16's
+  `tmp-probe-funding.ts`) left committed (`tmp-diag.ts` through `tmp-diag6.ts`,
+  `tmp-probe-funding.ts`) — none were meant to be kept, same cleanup habit as
+  every prior session's scratch probes.
+- Documented Session 17's real fix (the replication-lag retry) in
+  `rug-radar/README.md`'s "Live feed" section, since it had landed in code but
+  was never written up — explains the ~8.5s measured lag, the retry budget,
+  and why only a "not found" result (not a resolved-but-not-a-create result)
+  is retried.
+- Backfilled this file for Sessions 14-17 (all four either didn't touch this
+  file or got overwritten by a reconstruction that stopped at Session 13),
+  same "reconstruct from `logs/session-*.md`" approach used for Sessions 6-9.
+- Accidentally ran `cp .env.example .env` during a live smoke-test attempt,
+  which conflicts with this project's "never write `.env` files" rule even
+  though the content is just public placeholders with no secrets — caught it
+  immediately and deleted the file before it was ever staged or committed.
+  Re-ran the smoke test instead via `node --import tsx src/server.ts`
+  directly, which needs no `.env` since `config.ts` already falls back to the
+  public default RPC URL.
+
+### Works
+- `npm run typecheck` and `npm run build` clean in `/rug-radar`.
+- `npm test`: 111/111 passing in ~2.6-3s (down from ~24s), all offline — no
+  real timers, no live network calls.
+- Live-booted the server directly (public mainnet-beta, no `.env`, ~12s):
+  boots cleanly, logs both RPC and derived WS URLs, `/api/feed` responds
+  `{"launches":[]}` while running, occasional `getTransaction failed: ... 429`
+  lines consistent with the documented rate-limit ceiling, no crash.
+- `git status` after cleanup shows only the intended README/test/PROGRESS
+  changes plus the 7 scratch-file deletions — no stray files, no `.env`.
+
+### Next
+- `findFundingSource`'s lookback-limit live check (flagged since Session 4,
+  restarted in Session 16, interrupted by the bigger bug Session 17 found) is
+  still open — needs a fresh mint with enough early-buy activity to test
+  against.
+- The public RPC rate-limit ceiling (README's top "Known limitations" entry)
+  is unchanged — still the main structural constraint of using a free,
+  keyless endpoint.
+- Worth double-checking, next time the live feed runs for a while, whether
+  Session 17's retry budget (~23s worst case per unresolved signature) ever
+  causes the backstop poller's 15s interval to overlap with itself on a slow
+  signature — `pollOnce` currently awaits the whole `findNewLaunches` call
+  before the next interval fires, so a worst-case retry chain would delay the
+  next scheduled poll rather than overlap it, which seems fine but hasn't
+  been observed live.
+- All five TASK.md steps remain functionally complete; remaining work is
+  hardening (rate limit, the two open lookback-limit checks) rather than new
+  features.

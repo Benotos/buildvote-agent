@@ -101,6 +101,16 @@ Two discovery paths feed the same pipeline:
   startup or a reconnect gap isn't lost. `resolveLaunchFromSignature` (used
   by both paths) is shared so they decode a `create` the same way.
 
+`resolveLaunchFromSignature` retries a `getTransaction` call that comes back
+"not found" with exponential backoff (5 retries, 750ms base, ~23s budget)
+before giving up — confirmed live that the public RPC's multi-node cluster
+can take several seconds (one measured sample: ~8.5s) to make a signature
+the websocket watcher just saw visible to `getTransaction`. Without the
+retry, that launch was silently dropped forever (a "not found" result isn't
+an exception, so nothing surfaced the loss). A transaction that resolves but
+isn't a create instruction is never retried — only the "doesn't exist yet"
+case is transient.
+
 `src/pipeline.ts` turns one discovered launch into a full `LaunchScore` by
 running all four signals' data-fetch + score functions (a signal that fails
 to fetch — e.g. too early for holder data to settle — is dropped rather than

@@ -123,7 +123,7 @@ test("skips a signature whose getTransaction call throws, instead of failing the
     return signature === "sigCreate" ? createTx() : null;
   };
 
-  const result = await findNewLaunches(rpc, 1700000000);
+  const result = await findNewLaunches(rpc, 1700000000, { resolveOptions: { retries: 0 } });
   assert.equal(result.launches.length, 1);
   assert.equal(result.launches[0].mint, "Mint1111111111111111111111111111111111111");
   assert.equal(result.newestBlockTime, 1700000200);
