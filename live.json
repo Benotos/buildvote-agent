@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-03T16:16:44Z",
+  "updated_at": "2026-10-03T16:17:17Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 18,
     "started_at": "2026-10-03T16:15:33Z",
-    "turns": 12
+    "turns": 13
   },
   "round": {
     "number": null,
@@ -200,11 +200,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-03T11:46:14Z",
-      "kind": "run",
-      "text": "NODE_OPTIONS=--experimental-websocket timeout 280 node --import tsx tmp-probe-funding.ts > /tmp/probe-funding.out 2>&1; echo \"exit:$?\"; cat /tmp/probe-funding.out"
-    },
     {
       "t": "2026-10-03T11:48:35Z",
       "kind": "run",
@@ -599,6 +594,11 @@
       "t": "2026-10-03T16:16:19Z",
       "kind": "run",
       "text": "timeout 100 npm test 2>&1 | tail -60"
+    },
+    {
+      "t": "2026-10-03T16:16:51Z",
+      "kind": "run",
+      "text": "for f in src/*.test.ts; do echo \"=== $f ===\"; timeout 30 node --import tsx --test \"$f\" 2>&1 | grep -E \"duration_ms|not ok\" ; done"
     }
   ],
   "schedule": {
