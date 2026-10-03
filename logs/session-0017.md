@@ -1,0 +1,97 @@
+# Session 17: Rug radar: live launch scoring
+
+- Started: 2026-10-03T11:36:51Z
+- Ended: 2026-10-03T11:57:36Z
+- Steps: 66
+- Model turns: 61
+- Billing: Claude subscription (API value $3.3911, not billed)
+- Outcome: step limit reached
+
+## Steps
+
+- `think` I'll start by reading the task and progress files.
+- `run` cat /home/runner/work/buildvote-agent/buildvote-agent/TASK.md 2>/dev/null; echo "---PROGRESS---"; cat /home/runner/work/buildvote-agent/buildvote-agent/PROGRESS.md 2>/dev/null
+- `read` PROGRESS.md
+- `read` TASK.md
+- `run` git log --oneline -20 && echo "---" && git log --oneline -5 -- PROGRESS.md && echo "---status---" && git status && echo "---ls rug-radar---" && ls rug-radar
+- `run` git log --all --oneline | head -30; echo "---"; git log -1 --stat | head -50; echo "---depth---"; git rev-list --count HEAD
+- `run` cat /home/runner/work/buildvote-agent/buildvote-agent/queue.json
+- `read` logs/session-0014.md
+- `read` logs/session-0015.md
+- `read` logs/session-0016.md
+- `read` rug-radar/tmp-probe-funding.ts
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && ls node_modules 2>/dev/null | head -1; echo "node_modules present: $?"
+- `run` npm install --no-audit --no-fund 2>&1 | tail -5 && echo "===TYPECHECK===" && npm run typecheck 2>&1 | tail -20 && echo "===TEST===" && npm test 2>&1 | tail -15 && echo "===STATUS===" && cd .. && git status --short
+- `think` The previous session started a live probe to test the bundled-buys funding-source lookback but ran out of steps before it finished. I'll rerun it synchronously now so I can see the result directly.
+- `run` cd /home/runner/work/buildvote-agent/buildvote-agent/rug-radar && NODE_OPTIONS=--experimental-websocket timeout 280 node --import tsx tmp-probe-funding.ts 2>&1 | tail -150
+- `run` grep -n "onOpen\|onConnect\|console\|open\b" src/wsDiscovery.ts | head -30
+- `read` rug-radar/src/wsDiscovery.ts
+- `edit` rug-radar/tmp-probe-funding.ts
+- `run` NODE_OPTIONS=--experimental-websocket timeout 280 node --import tsx tmp-probe-funding.ts 2>&1 | tail -150
+- `read` rug-radar/src/data/bundledBuys.ts
+- `run` NODE_OPTIONS=--experimental-websocket timeout 15 node -e ' const ws = new WebSocket("wss://api.mainnet-beta.solana.com"); console.log("created, waiting..."); ws.onopen = () => { console.log("OPEN"); ws.close(); }; ws.onerror = (e) => console.log("ERROR", e.message || e); ws.onclose = (e) => console.log("CLOSE", e.code); setTimeout(() => { console.log("timeout reached, no event fired"); process.ex…
+- `read` rug-radar/tmp-probe-funding.ts
+- `run` NODE_OPTIONS=--experimental-websocket timeout 280 node --import tsx tmp-probe-funding.ts > /tmp/probe-funding.out 2>&1; echo "exit:$?"; cat /tmp/probe-funding.out
+- `run` NODE_OPTIONS=--experimental-websocket timeout 20 node -e ' const ws = new WebSocket("wss://api.mainnet-beta.solana.com"); let count = 0, createCount = 0; ws.onopen = () => {   console.log("open, subscribing");   ws.send(JSON.stringify({jsonrpc:"2.0", id:1, method:"logsSubscribe", params:[{mentions:["6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"]}, {commitment:"confirmed"}]})); }; ws.onmessage = (e…
+- `run` cat > /tmp/diag.ts <<'EOF' import { PUMP_FUN_PROGRAM_ID } from "./src/pumpfun.js"; import { detectCreateInstruction } from "./src/wsLogParser.js"; import { resolveLaunchFromSignature } from "./src/discovery.js"; import { SolanaRpcClient } from "./src/rpc.js";  const RPC_URL = "https://api.mainnet-beta.solana.com"; const rpc = new SolanaRpcClient(RPC_URL, fetch, { maxConcurrent: 2 });  const ws = …
+- `think` Need to place the diagnostic script inside the project dir for relative imports to resolve.
+- `run` cp /tmp/diag.ts /home/runner/work/buildvote-agent/buildvote-agent/rug-radar/tmp-diag.ts && NODE_OPTIONS=--experimental-websocket timeout 40 node --import tsx tmp-diag.ts > /tmp/diag.out 2>&1; echo "exit:$?"; cat /tmp/diag.out
+- `think` Found a real bug: `detectCreateInstruction` correctly detects live `create_v2` instructions (13 in 30s), but `resolveLaunchFromSignature` returns null for every single one — meaning the live feed's primary discovery path is silently missing all launches right now. Let me look at why.
+- `read` rug-radar/src/discovery.ts
+- `run` cat > tmp-diag2.ts <<'EOF' import { SolanaRpcClient } from "./src/rpc.js"; import { PUMP_FUN_PROGRAM_ID } from "./src/pumpfun.js";  const RPC_URL = "https://api.mainnet-beta.solana.com"; const rpc = new SolanaRpcClient(RPC_URL, fetch, { maxConcurrent: 2 });  const sig = process.argv[2]; const tx = await rpc.getTransaction(sig); if (!tx) { console.log("no tx"); process.exit(1); } console.log("top-…
+- `run` cat > tmp-diag3.ts <<'EOF' import { SolanaRpcClient } from "./src/rpc.js"; import { PUMP_FUN_PROGRAM_ID, decodeCreateInstruction } from "./src/pumpfun.js"; import { base58Decode } from "./src/base58.js";  const RPC_URL = "https://api.mainnet-beta.solana.com"; const rpc = new SolanaRpcClient(RPC_URL, fetch, { maxConcurrent: 2 });  const sig = process.argv[2]; const tx = await rpc.getTransaction(si…
+- `run` cat > tmp-diag4.ts <<'EOF' import { SolanaRpcClient } from "./src/rpc.js"; import { resolveLaunchFromSignature } from "./src/discovery.js"; import { safeGetTransaction } from "./src/rpc.js";  const RPC_URL = "https://api.mainnet-beta.solana.com"; const rpc = new SolanaRpcClient(RPC_URL, fetch, { maxConcurrent: 2 });  const sig = process.argv[2]; const tx = await safeGetTransaction(rpc, sig); cons…
+- `run` grep -n "getTransaction\|safeGetTransaction\|not found\|null" src/rpc.ts | head -60
+- `think` This confirms a real, previously-undiscovered bug: when the websocket watcher detects a create instruction and immediately calls `getTransaction`, the public RPC's replication lag means the transaction often isn't indexed yet, so `getTransaction` returns null and the launch is silently dropped forever — no retry exists for this case (only for HTTP 429s). This explains why the primary live discove…
+- `read` rug-radar/src/discovery.test.ts
+- `run` grep -n "resolveLaunchFromSignature\|sleep" src/wsDiscovery.test.ts src/wsDiscovery.ts src/poller.ts | head -40
+- `read` rug-radar/src/wsDiscovery.test.ts
+- `read` rug-radar/src/discovery.ts
+- `think` Now implementing the fix — a bounded retry on "transaction not found yet" (distinct from "found but not a create", which never retries):
+- `edit` rug-radar/src/discovery.ts
+- `think` Now wire the retry's `sleep` through `wsDiscovery.ts` so it's injectable in tests and shares the watcher's own sleep function:
+- `read` rug-radar/src/wsDiscovery.ts
+- `edit` rug-radar/src/wsDiscovery.ts
+- `edit` rug-radar/src/wsDiscovery.ts
+- `think` Now let's add tests for both the retry logic in `discovery.ts` and the wiring in `wsDiscovery.ts`.
+- `edit` rug-radar/src/discovery.test.ts
+- `edit` rug-radar/src/discovery.test.ts
+- `think` Now add a wsDiscovery test confirming the watcher retries transient not-found results via its own injected sleep:
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `think` Now let's run typecheck and the full test suite.
+- `run` npm run typecheck 2>&1 | tail -40 && echo "===TEST===" && npm test 2>&1 | tail -40
+- `think` All 111 tests pass (107 → 111, 4 new). Now let's verify the fix live — rerun the diagnostic against real mainnet-beta to confirm resolved launches no longer get dropped.
+- `run` cat > tmp-diag5.ts <<'EOF' import { SolanaRpcClient } from "./src/rpc.js"; import { PUMP_FUN_PROGRAM_ID } from "./src/pumpfun.js"; import { detectCreateInstruction } from "./src/wsLogParser.js"; import { resolveLaunchFromSignature } from "./src/discovery.js";  const RPC_URL = "https://api.mainnet-beta.solana.com"; const rpc = new SolanaRpcClient(RPC_URL, fetch, { maxConcurrent: 2 });  const ws = …
+- `think` Let me isolate from the rate-limit noise and directly measure the actual replication-lag duration for one signature, to size the retry budget correctly.
+- `run` cat > tmp-diag6.ts <<'EOF' import { SolanaRpcClient } from "./src/rpc.js"; import { PUMP_FUN_PROGRAM_ID } from "./src/pumpfun.js"; import { detectCreateInstruction } from "./src/wsLogParser.js";  const RPC_URL = "https://api.mainnet-beta.solana.com"; const rpc = new SolanaRpcClient(RPC_URL, fetch, { maxConcurrent: 1, maxRetries: 0 });  const ws = new WebSocket("wss://api.mainnet-beta.solana.com")…
+- `run` grep -n "baseDelayMs\|maxRetries\|backoff\|2 \*\*\|Math.min" src/rpc.ts | head -20
+- `think` Real-world lag was ~8.5s — my original fixed 500ms×4 retry budget (2s total) was far too short. Let me switch to exponential backoff (matching the style already used for 429 retries in `rpc.ts`) with a longer total budget.
+- `read` rug-radar/src/discovery.ts
+- `edit` rug-radar/src/discovery.ts
+- `read` rug-radar/src/discovery.ts
+- `edit` rug-radar/src/discovery.ts
+- `think` Now update `wsDiscovery.ts`'s option names to match, and fix the tests that reference `retryDelayMs`.
+- `run` grep -n "resolveRetryDelayMs\|resolveRetries\|retryDelayMs" src/wsDiscovery.ts src/wsDiscovery.test.ts src/discovery.test.ts
+- `edit` rug-radar/src/wsDiscovery.ts
+- `edit` rug-radar/src/wsDiscovery.ts
+- `think` Now update the tests to use the new option name and reflect exponential backoff:
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `edit` rug-radar/src/wsDiscovery.test.ts
+- `think` Now update `discovery.test.ts`'s two new tests for the renamed option and exponential delays:
+- `read` rug-radar/src/discovery.test.ts
+- `edit` rug-radar/src/discovery.test.ts
+- `read` rug-radar/src/discovery.test.ts
+- `edit` rug-radar/src/discovery.test.ts
+- `think` Now run typecheck and the full test suite again.
+- `run` npm run typecheck 2>&1 | tail -40 && echo "===TEST===" && npm test 2>&1 | tail -20
+- `think` Duration jumped from ~5s to 47s — something is using real timers instead of the injected fake sleep. Let me check.
+- `run` npm test 2>&1 | grep -E "ms\)" | sort -t'(' -k2 -rn | head -5
+- `think` I need to thread resolve options through `findNewLaunches` so the existing polling-path tests (which don't inject a fake sleep) don't fall back to real 23-second timers. Let me check the affected test call sites first.
+- `run` grep -rn "findNewLaunches" src/*.ts src/*.test.ts
+- `read` rug-radar/src/discovery.ts
+- `edit` rug-radar/src/discovery.ts
+- `read` rug-radar/src/discovery.ts
+- `edit` rug-radar/src/discovery.ts
+- `think` Now update the two pre-existing tests that trigger the retry loop with real timers, so they use `retries: 0` (their intent is "skips an unresolved signature," not retry behavior — that's covered by the new dedicated tests):
+- `read` rug-radar/src/discovery.test.ts
+- `edit` rug-radar/src/discovery.test.ts

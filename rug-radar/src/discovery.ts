@@ -33,6 +33,12 @@ export interface FindNewLaunchesOptions {
   // lines that arrive for free with the subscription, instead of polling
   // signatures and fetching each transaction — not attempted yet.
   limit?: number;
+  // Passed through to resolveLaunchFromSignature per signature. The poll's
+  // own signatures can still be very recent (the firehose above means even
+  // a 15s-old poll can surface signatures from moments ago), so the same
+  // not-found-yet retry that wsDiscovery.ts's real-time path needs can also
+  // matter here — not just a websocket-only concern.
+  resolveOptions?: ResolveLaunchOptions;
 }
 
 const DEFAULT_LIMIT = 50;
@@ -74,7 +80,7 @@ export async function findNewLaunches(
   for (const sig of [...signatures].reverse()) {
     if (sig.err || sig.blockTime === null || sig.blockTime <= sinceBlockTime) continue;
 
-    const launch = await resolveLaunchFromSignature(rpc, sig.signature);
+    const launch = await resolveLaunchFromSignature(rpc, sig.signature, options.resolveOptions);
     if (launch) launches.push(launch);
   }
 
@@ -83,6 +89,33 @@ export async function findNewLaunches(
 
 type SignatureFetcher = Pick<SolanaRpcClient, "getTransaction">;
 
+export interface ResolveLaunchOptions {
+  // Confirmed live (session 17): right after the websocket watcher sees a
+  // create's log notification, getTransaction for that same signature often
+  // comes back null — the public RPC is a multi-node cluster and the node
+  // serving getTransaction can lag behind whichever node pushed the log
+  // notification. Measured directly against real traffic: one sample took
+  // ~8.5s to become visible (5 polling attempts at a 2s interval) — not a
+  // sub-second blip. Retrying with backoff resolves these; without it, the
+  // launch was silently dropped forever (no error, since a "not found"
+  // result isn't an exception). Only a null *transaction* is retried — a
+  // transaction that resolves but isn't a create instruction won't become
+  // one on a retry, so that case returns immediately.
+  retries?: number;
+  baseDelayMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+// Exponential backoff (same `baseDelayMs * 2 ** attempt` shape as rpc.ts's
+// 429 retry): 750, 1500, 3000, 6000, 12000ms, ~23.25s cumulative across 5
+// retries — comfortably past the ~8.5s lag observed live.
+const DEFAULT_RESOLVE_RETRIES = 5;
+const DEFAULT_RESOLVE_BASE_DELAY_MS = 750;
+
+function defaultSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Fetches one transaction and, if it contains a pump.fun create/create_v2
 // instruction, decodes it into a DiscoveredLaunch. Shared by the polling
 // path above and wsDiscovery.ts's real-time path — both end up with just a
@@ -90,14 +123,21 @@ type SignatureFetcher = Pick<SolanaRpcClient, "getTransaction">;
 export async function resolveLaunchFromSignature(
   rpc: SignatureFetcher,
   signature: string,
+  options: ResolveLaunchOptions = {},
 ): Promise<DiscoveredLaunch | null> {
-  const tx = await safeGetTransaction(rpc, signature);
-  if (!tx || tx.blockTime === null) return null;
+  const retries = options.retries ?? DEFAULT_RESOLVE_RETRIES;
+  const baseDelayMs = options.baseDelayMs ?? DEFAULT_RESOLVE_BASE_DELAY_MS;
+  const sleep = options.sleep ?? defaultSleep;
 
-  const created = findCreateInstruction(tx);
-  if (!created) return null;
-
-  return { ...created, createdAt: tx.blockTime, signature };
+  for (let attempt = 0; ; attempt++) {
+    const tx = await safeGetTransaction(rpc, signature);
+    if (tx && tx.blockTime !== null) {
+      const created = findCreateInstruction(tx);
+      return created ? { ...created, createdAt: tx.blockTime, signature } : null;
+    }
+    if (attempt >= retries) return null;
+    await sleep(baseDelayMs * 2 ** attempt);
+  }
 }
 
 function findCreateInstruction(

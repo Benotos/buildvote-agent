@@ -244,6 +244,44 @@ test("deduplicates a signature seen twice (e.g. redelivered after resubscribe)",
   watcher.stop();
 });
 
+test("retries a transiently not-found transaction (RPC replication lag) before resolving", async () => {
+  const sockets: FakeWebSocket[] = [];
+  const launches: unknown[] = [];
+  const sleeps: number[] = [];
+  let getTransactionCalls = 0;
+  const watcher = new LaunchWatcher(
+    "wss://fake",
+    fakeRpc(async (sig) => {
+      getTransactionCalls++;
+      return getTransactionCalls < 3 ? null : fixtureTx(sig);
+    }),
+    {
+      onLaunch: (l) => launches.push(l),
+      resolveBaseDelayMs: 25,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      wsFactory: (url) => {
+        const ws = new FakeWebSocket();
+        sockets.push(ws);
+        return ws;
+      },
+    },
+  );
+
+  watcher.start();
+  const ws = sockets[0];
+  ws.emitOpen();
+  ws.emitMessage(JSON.stringify(logsNotification("sig-lagged", CREATE_V2_LOGS)));
+
+  await flushMicrotasks();
+
+  assert.equal(getTransactionCalls, 3);
+  assert.deepEqual(sleeps, [25, 50]); // exponential backoff: 25*2^0, 25*2^1
+  assert.equal(launches.length, 1);
+  watcher.stop();
+});
+
 test("reconnects and resubscribes after the connection drops", async () => {
   const sockets: FakeWebSocket[] = [];
   const sleeps: number[] = [];

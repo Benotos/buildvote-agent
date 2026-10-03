@@ -63,6 +63,12 @@ export interface WatchLaunchesOptions {
   // Bounds memory for the recently-seen-signature dedup set (a resubscribe
   // after a reconnect can redeliver recent notifications).
   maxSeenSignatures?: number;
+  // Passed through to resolveLaunchFromSignature's retry-on-not-found-yet
+  // (see discovery.ts's ResolveLaunchOptions) — matters most here, since a
+  // freshly-pushed log notification is exactly when getTransaction is most
+  // likely to lag behind on the public RPC's multi-node cluster.
+  resolveRetries?: number;
+  resolveBaseDelayMs?: number;
 }
 
 const DEFAULT_RECONNECT_BASE_MS = 1000;
@@ -163,7 +169,11 @@ export class LaunchWatcher {
     const variant = detectCreateInstruction(PUMP_FUN_PROGRAM_ID, logs);
     if (!variant) return;
 
-    resolveLaunchFromSignature(this.rpc, signature)
+    resolveLaunchFromSignature(this.rpc, signature, {
+      retries: this.opts.resolveRetries,
+      baseDelayMs: this.opts.resolveBaseDelayMs,
+      sleep: this.sleep,
+    })
       .then((launch) => {
         if (launch) this.opts.onLaunch(launch);
       })

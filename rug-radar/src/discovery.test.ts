@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findNewLaunches } from "./discovery.js";
+import { findNewLaunches, resolveLaunchFromSignature } from "./discovery.js";
 import { PUMP_FUN_PROGRAM_ID } from "./pumpfun.js";
 import { base58Encode } from "./base58.js";
 import type { ParsedTransaction, SignatureInfo } from "./rpc.js";
@@ -71,7 +71,7 @@ test("finds a create instruction among newer signatures and returns oldest-first
   ];
   const rpc = fakeRpc({ sigCreate: createTx(), sigNewer: null }, signatures);
 
-  const result = await findNewLaunches(rpc, 1700000000);
+  const result = await findNewLaunches(rpc, 1700000000, { resolveOptions: { retries: 0 } });
   assert.equal(result.launches.length, 1);
   assert.equal(result.launches[0].mint, "Mint1111111111111111111111111111111111111");
   assert.equal(result.launches[0].deployer, "Deployer111111111111111111111111111111111");
@@ -127,6 +127,81 @@ test("skips a signature whose getTransaction call throws, instead of failing the
   assert.equal(result.launches.length, 1);
   assert.equal(result.launches[0].mint, "Mint1111111111111111111111111111111111111");
   assert.equal(result.newestBlockTime, 1700000200);
+});
+
+test("resolveLaunchFromSignature retries a not-found transaction until it appears", async () => {
+  let calls = 0;
+  const rpc = {
+    async getTransaction() {
+      calls++;
+      return calls < 3 ? null : createTx();
+    },
+  };
+  const sleeps: number[] = [];
+
+  const launch = await resolveLaunchFromSignature(rpc, "sigCreate", {
+    baseDelayMs: 50,
+    sleep: async (ms) => {
+      sleeps.push(ms);
+    },
+  });
+
+  assert.equal(calls, 3);
+  assert.deepEqual(sleeps, [50, 100]); // exponential backoff: 50*2^0, 50*2^1
+  assert.equal(launch?.mint, "Mint1111111111111111111111111111111111111");
+});
+
+test("resolveLaunchFromSignature gives up after exhausting retries on a persistently not-found transaction", async () => {
+  let calls = 0;
+  const rpc = {
+    async getTransaction() {
+      calls++;
+      return null;
+    },
+  };
+  const sleeps: number[] = [];
+
+  const launch = await resolveLaunchFromSignature(rpc, "sigGone", {
+    retries: 2,
+    baseDelayMs: 10,
+    sleep: async (ms) => {
+      sleeps.push(ms);
+    },
+  });
+
+  assert.equal(launch, null);
+  assert.equal(calls, 3); // initial attempt + 2 retries
+  assert.deepEqual(sleeps, [10, 20]); // exponential backoff: 10*2^0, 10*2^1
+});
+
+test("resolveLaunchFromSignature does not retry a resolved transaction that simply isn't a create", async () => {
+  let calls = 0;
+  const unrelatedTx: ParsedTransaction = {
+    slot: 1,
+    blockTime: 1700000100,
+    transaction: {
+      signatures: ["sigUnrelated"],
+      message: { accountKeys: [], instructions: [] },
+    },
+    meta: { err: null, fee: 5000, preBalances: [], postBalances: [] },
+  };
+  const rpc = {
+    async getTransaction() {
+      calls++;
+      return unrelatedTx;
+    },
+  };
+  const sleeps: number[] = [];
+
+  const launch = await resolveLaunchFromSignature(rpc, "sigUnrelated", {
+    sleep: async (ms) => {
+      sleeps.push(ms);
+    },
+  });
+
+  assert.equal(launch, null);
+  assert.equal(calls, 1);
+  assert.deepEqual(sleeps, []);
 });
 
 test("returns the prior watermark unchanged when there are no signatures at all", async () => {

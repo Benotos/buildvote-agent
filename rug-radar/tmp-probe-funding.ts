@@ -15,6 +15,7 @@ const watcher = new LaunchWatcher(deriveWsUrl(RPC_URL), rpc, {
 
 const captured: { mint: string; bondingCurve: string; createdAt: number }[] = [];
 
+console.log("starting watcher at", new Date().toISOString());
 watcher.start();
 
 function sleep(ms: number) {
@@ -24,7 +25,10 @@ function sleep(ms: number) {
 async function main() {
   // Let a handful of launches accumulate, then give them time to pick up
   // early buys before checking the funding-source lookback.
-  await sleep(20_000);
+  for (let i = 0; i < 4; i++) {
+    await sleep(10_000);
+    console.log(`[${(i + 1) * 10}s] captured so far: ${captured.length}`);
+  }
   watcher.stop();
   console.log(`Captured ${captured.length} launches. Waiting for early-buy activity...`);
   await sleep(90_000);
