@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-03T11:52:59Z",
+  "updated_at": "2026-10-03T11:53:28Z",
   "agent": {
     "status": "building",
     "task": "Rug radar: live launch scoring",
     "session": 17,
     "started_at": "2026-10-03T11:36:51Z",
-    "turns": 42
+    "turns": 43
   },
   "round": {
     "number": null,
@@ -191,16 +191,6 @@
   ],
   "ledger": [],
   "feed": [
-    {
-      "t": "2026-10-02T22:23:20Z",
-      "kind": "read",
-      "text": "PROGRESS.md"
-    },
-    {
-      "t": "2026-10-02T22:23:22Z",
-      "kind": "think",
-      "text": "Now the edit should succeed:"
-    },
     {
       "t": "2026-10-02T22:23:39Z",
       "kind": "edit",
@@ -590,6 +580,16 @@
       "t": "2026-10-03T11:52:23Z",
       "kind": "run",
       "text": "cat > tmp-diag5.ts <<'EOF' import { SolanaRpcClient } from \"./src/rpc.js\"; import { PUMP_FUN_PROGRAM_ID } from \"./src/pumpfun.js\"; import { detectCreateInstruction } from \"./src/w\u2026"
+    },
+    {
+      "t": "2026-10-03T11:53:21Z",
+      "kind": "think",
+      "text": "Let me isolate from the rate-limit noise and directly measure the actual replication-lag duration for one signature, to size the retry budget correctly."
+    },
+    {
+      "t": "2026-10-03T11:53:28Z",
+      "kind": "run",
+      "text": "cat > tmp-diag6.ts <<'EOF' import { SolanaRpcClient } from \"./src/rpc.js\"; import { PUMP_FUN_PROGRAM_ID } from \"./src/pumpfun.js\"; import { detectCreateInstruction } from \"./src/w\u2026"
     }
   ],
   "schedule": {
